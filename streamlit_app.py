@@ -4,8 +4,31 @@ import plotly.express as px
 import numpy as np
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
+
+# ---------------------- 弹跳👀动画CSS ----------------------
+bounce_html = """
+<style>
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+.bounce-eyes {
+  font-size: 42px;
+  animation: bounce 0.7s ease-in-out infinite;
+  display: inline-block;
+}
+</style>
+<div style="text-align:center; margin-bottom:10px;">
+  <span class="bounce-eyes">👀</span>
+</div>
+"""
+st.markdown(bounce_html, unsafe_allow_html=True)
+
 st.title("帕金森DBS神经动力学仿真可视化平台")
 st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
+
+# 背景音乐（循环，需要手动点播放，浏览器不允许无声自动播放）
+st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", loop=True, format="audio/mpeg", alt="背景音乐")
 
 
 @st.cache_data
@@ -77,11 +100,12 @@ if df is not None:
         st.info("💡 保存图片：点击图表右上角相机图标直接截图保存")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
-        # 页面底部署名
+
+# 底部署名
 st.markdown("---")
 st.markdown(
-    "<div style='text-align: center; color: #2196F3; font-size: 14px;'>"
-    "豫北医学院 · Powered by 王一浩 牛璐鸣 李雨轩 指导教师：丰依凡"
+    "<div style='text-align: center; color: #888888; font-size: 14px;'>"
+    "豫北医学院 · Powered by WYH"
     "</div>",
     unsafe_allow_html=True
 )
