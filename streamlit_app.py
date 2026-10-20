@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import pandas as pd
 import plotly.express as px
+from streamlit.components.v1 import html
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 
-# ---------------------- 多个👀错开弹跳动画 ----------------------
+# ---------------------- 👀弹跳动画 ----------------------
 bounce_html = """
 <style>
 @keyframes bounce {
@@ -41,8 +42,15 @@ st.markdown(bounce_html, unsafe_allow_html=True)
 st.title("帕金森DBS神经动力学仿真可视化平台")
 st.markdown("📌 两种使用模式：①基底节环路网络仿真；②上传自己导出的CSV文件")
 
-# 背景音乐
-st.audio("像梦一样自由.mp3", loop=True, format="audio/mpeg")
+# ========== 【新增1：版本+更新日志板块】 ==========
+with st.expander("📋 版本信息 & 更新日志", expanded=True):
+    st.markdown("**当前版本：V1.2 | 更新日期：2026.10.20**")
+    st.markdown("""
+    - [2026.10.20] V1.2：新增【休闲窗口】，内置2048小游戏
+    - [2026.10.20] V1.1：新增参数详情弹窗说明、参数原理解释模块
+    - [2026.10.19] V1.0：完成基础三工况仿真、栅格图/LFP/时频图、CSV上传绘图功能
+    """)
+    st.info("💡 每次更新代码时，在这里直接修改版本号、日期、新增条目即可。")
 
 # ---------------------- 默认配置 ----------------------
 def get_default_config():
@@ -57,6 +65,46 @@ def get_default_config():
         "dbs_pulse_width": 0.1,
         "dbs_start_ms": 1000.0,
     }
+
+# ---------------------- 参数说明字典【新增2：每个参数的说明，你后续可以继续扩充】 ----------------------
+param_info = {
+    "dt": {
+        "brief": "仿真时间步长",
+        "detail": "dt是数值仿真的时间间隔，单位ms。dt越小仿真精度越高，但计算速度更慢；dt太大容易出现微分方程发散、仿真失真。一般0.05~0.2ms比较合适。"
+    },
+    "sim_total_ms": {
+        "brief": "仿真总时长",
+        "detail": "整个仿真持续的总时间，单位ms。时长越长，能观察更长时间尺度的振荡节律，但仿真耗时线性增加。帕金森beta振荡一般观察1~3秒足够。"
+    },
+    "n_per_nuc": {
+        "brief": "单核团神经元数量",
+        "detail": "每个核团里面模拟多少个神经元。数量越多，群体放电统计效果越贴近真实环路，但是仿真计算速度明显变慢，建议新手20~40个。"
+    },
+    "tau_exc": {
+        "brief": "兴奋性突触时间常数",
+        "detail": "兴奋性突触电流衰减快慢。tau越大，兴奋信号持续时间越长，环路更容易产生同步振荡；兴奋性突触主要来自STN、皮层。"
+    },
+    "tau_inh": {
+        "brief": "抑制性突触时间常数",
+        "detail": "抑制性突触电流衰减快慢。抑制性突触来自GPe、纹状体，负责调控环路节律，是环路稳定的关键，和帕金森病理下抑制通路改变密切相关。"
+    },
+    "dbs_freq": {
+        "brief": "DBS刺激频率",
+        "detail": "深部脑刺激脉冲重复频率，临床治疗帕金森STN-DBS常规使用130Hz左右。低频刺激往往会加重beta振荡，高频才起到抑制病理性同步放电的效果。"
+    },
+    "dbs_amp": {
+        "brief": "DBS刺激电流强度",
+        "detail": "刺激电流幅值，决定对周围神经元的激活范围。电流太小无法调控环路，过大容易造成非目标区域激活，对应临床刺激副作用。"
+    },
+    "dbs_pulse_width": {
+        "brief": "DBS脉冲宽度",
+        "detail": "单个刺激脉冲持续时间，单位ms。临床常用脉宽多在0.06~0.12ms，脉宽决定电荷注入量，是DBS刺激的重要参数。"
+    },
+    "dbs_start_ms": {
+        "brief": "DBS开启时刻",
+        "detail": "仿真从什么时候开始施加DBS刺激。设置靠前可以全程刺激，设置靠后可以先观察帕金森自发振荡，再观察施加刺激之后的节律变化，方便前后对比。"
+    }
+}
 
 # ---------------------- 神经元参数 ----------------------
 neuron_param = {
@@ -268,22 +316,53 @@ mode = st.radio(
 
 df = None
 
-# ---------------------- 模式1：环路仿真 ----------------------
+# ---------------------- 模式1：环路仿真 + 侧边栏参数（带展开说明） ----------------------
 if mode == "基底节环路网络仿真":
     st.sidebar.header("⚙️ 仿真参数设置")
 
     base_cfg = get_default_config()
-
     cfg = {}
-    cfg["dt"] = st.sidebar.number_input("仿真步长 dt(ms)", value=base_cfg["dt"], min_value=0.05, max_value=0.5, step=0.05)
-    cfg["sim_total_ms"] = st.sidebar.slider("仿真总时长(ms)", min_value=1000, max_value=3000, value=int(base_cfg["sim_total_ms"]), step=200)
-    cfg["n_per_nuc"] = st.sidebar.slider("单核团神经元数量", min_value=10, max_value=60, value=base_cfg["n_per_nuc"], step=5)
-    cfg["tau_exc"] = st.sidebar.slider("兴奋性时间常数(ms)", 1.0, 8.0, base_cfg["tau_exc"], 0.5)
-    cfg["tau_inh"] = st.sidebar.slider("抑制性时间常数(ms)", 2.0, 12.0, base_cfg["tau_inh"], 0.5)
-    cfg["dbs_freq"] = st.sidebar.slider("DBS频率(Hz)", 20, 180, base_cfg["dbs_freq"], 5)
-    cfg["dbs_amp"] = st.sidebar.slider("DBS刺激电流", 10, 120, base_cfg["dbs_amp"], 5)
-    cfg["dbs_pulse_width"] = st.sidebar.number_input("DBS脉宽(ms)", value=base_cfg["dbs_pulse_width"], min_value=0.05, max_value=1.0, step=0.05)
-    cfg["dbs_start_ms"] = st.sidebar.slider("DBS开启时刻(ms)", 200, 2000, int(base_cfg["dbs_start_ms"]), 100)
+
+    # ========== 侧边栏每一个参数，都带上展开详情 ==========
+    with st.sidebar:
+        st.markdown("#### 📐 基础仿真参数")
+        with st.expander(f'dt — {param_info["dt"]["brief"]}'):
+            st.info(param_info["dt"]["detail"])
+        cfg["dt"] = st.number_input("仿真步长 dt(ms)", value=base_cfg["dt"], min_value=0.05, max_value=0.5, step=0.05)
+
+        with st.expander(f'sim_total_ms — {param_info["sim_total_ms"]["brief"]}'):
+            st.info(param_info["sim_total_ms"]["detail"])
+        cfg["sim_total_ms"] = st.slider("仿真总时长(ms)", min_value=1000, max_value=3000, value=int(base_cfg["sim_total_ms"]), step=200)
+
+        with st.expander(f'n_per_nuc — {param_info["n_per_nuc"]["brief"]}'):
+            st.info(param_info["n_per_nuc"]["detail"])
+        cfg["n_per_nuc"] = st.slider("单核团神经元数量", min_value=10, max_value=60, value=base_cfg["n_per_nuc"], step=5)
+
+        st.markdown("#### 🧠 突触动力学参数")
+        with st.expander(f'tau_exc — {param_info["tau_exc"]["brief"]}'):
+            st.info(param_info["tau_exc"]["detail"])
+        cfg["tau_exc"] = st.slider("兴奋性时间常数(ms)", 1.0, 8.0, base_cfg["tau_exc"], 0.5)
+
+        with st.expander(f'tau_inh — {param_info["tau_inh"]["brief"]}'):
+            st.info(param_info["tau_inh"]["detail"])
+        cfg["tau_inh"] = st.slider("抑制性时间常数(ms)", 2.0, 12.0, base_cfg["tau_inh"], 0.5)
+
+        st.markdown("#### ⚡ DBS刺激参数")
+        with st.expander(f'dbs_freq — {param_info["dbs_freq"]["brief"]}'):
+            st.info(param_info["dbs_freq"]["detail"])
+        cfg["dbs_freq"] = st.slider("DBS频率(Hz)", 20, 180, base_cfg["dbs_freq"], 5)
+
+        with st.expander(f'dbs_amp — {param_info["dbs_amp"]["brief"]}'):
+            st.info(param_info["dbs_amp"]["detail"])
+        cfg["dbs_amp"] = st.slider("DBS刺激电流", 10, 120, base_cfg["dbs_amp"], 5)
+
+        with st.expander(f'dbs_pulse_width — {param_info["dbs_pulse_width"]["brief"]}'):
+            st.info(param_info["dbs_pulse_width"]["detail"])
+        cfg["dbs_pulse_width"] = st.number_input("DBS脉宽(ms)", value=base_cfg["dbs_pulse_width"], min_value=0.05, max_value=1.0, step=0.05)
+
+        with st.expander(f'dbs_start_ms — {param_info["dbs_start_ms"]["brief"]}'):
+            st.info(param_info["dbs_start_ms"]["detail"])
+        cfg["dbs_start_ms"] = st.slider("DBS开启时刻(ms)", 200, 2000, int(base_cfg["dbs_start_ms"]), 100)
 
     run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
 
@@ -390,6 +469,114 @@ if df is not None:
         st.info("💡 使用方法：拖动时间滑块截取一小段时间，就实现放大；点【恢复全局视图】回到全貌！")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
+
+
+# ========== 🎮 【新增：休闲窗口，内置2048小游戏】 ==========
+with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会2048", expanded=False):
+    st.markdown("使用方向键 ↑ ↓ ← → 控制方块移动，合并相同数字，合成2048即胜利！")
+    game_html = """
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing: border-box}
+.game-container{width:360px;margin:10px auto;font-family:Arial}
+.grid{display:grid;grid-template-columns: repeat(4, 1fr);gap:8px;background:#bbada0;padding:8px;border-radius:6px}
+.cell{width:76px;height:76px;background:#cdc1b4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:bold;color:#776e65}
+.t2{background:#eee4da}
+.t4{background:#ede0c8}
+.t8{background:#f2b179;color:white}
+.t16{background:#f59563;color:white}
+.t32{background:#f67c5f;color:white}
+.t64{background:#f65e3b;color:white}
+.t128{background:#edcf72;color:white;font-size:22px}
+.t256{background:#edcc61;color:white;font-size:22px}
+.t512{background:#edc850;color:white;font-size:22px}
+.t1024{background:#edc53f;color:white;font-size:18px}
+.t2048{background:#edc22e;color:white;font-size:18px}
+</style>
+</head>
+<body>
+<div class="game-container">
+<div class="grid" id="grid"></div>
+<p id="tip" style="text-align:center">分数：0</p>
+</div>
+<script>
+const gridEl = document.getElementById("grid");
+const tipEl = document.getElementById("tip");
+let grid = Array(4).fill().map(()=>Array(4).fill(0));
+let score = 0;
+function randEmpty(){
+    let arr=[];
+    for(let i=0;i<4;i++)for(let j=0;j<4;j++)if(grid[i][j]===0)arr.push([i,j]);
+    if(arr.length===0) return null;
+    return arr[Math.floor(Math.random()*arr.length);
+}
+function addBlock(){
+    let p=randEmpty();
+    if(!p) return;
+    grid[p[0]][p[1]] = Math.random()>0.1?2:4;
+}
+function render(){
+    gridEl.innerHTML="";
+    for(let i=0;i<4;i++){
+        for(let j=0;j<4;j++){
+            let v=grid[i][j];
+            let d=document.createElement("div");
+            d.className="cell "+(v?"t"+v:"");
+            d.innerText=v||"";
+            gridEl.appendChild(d);
+        }
+    }
+    tipEl.innerText="分数："+score;
+}
+function slide(row){
+    let a=row.filter(x=>x!==0);
+    for(let i=0;i<a.length-1;i++){
+        if(a[i]==a[i+1]){
+            a[i]*=2;
+            score += a[i];
+            a.splice(i+1,1);
+        }
+    }
+    while(a.length<4) a.push(0);
+    return a;
+}
+function move(dir){
+    let old = JSON.stringify(grid);
+    if(dir=="left") for(let i=0;i<4;i++) grid[i]=slide(grid[i]);
+    if(dir=="right") for(let i=0;i<4;i++) grid[i]=slide(grid[i].reverse()).reverse();
+    if(dir=="up"){
+        for(let j=0;j<4;j++){
+            let c=[grid[0][j],grid[1][j],grid[2][j],grid[3][j]];
+            c=slide(c);
+            for(let i=0;i<4;i++) grid[i][j]=c[i];
+        }
+    }
+    if(dir=="down"){
+        for(let j=0;j<4;j++){
+            let c=[grid[0][j],grid[1][j],grid[2][j],grid[3][j]];
+            c=slide(c.reverse()).reverse();
+            for(let i=0;i<4;i++) grid[i][j]=c[i];
+        }
+    }
+    if(JSON.stringify(grid)!==old) addBlock();
+    render();
+}
+document.onkeydown = e=>{
+    if(e.key=="ArrowUp"){e.preventDefault();move("up");}
+    if(e.key=="ArrowDown"){e.preventDefault();move("down");}
+    if(e.key=="ArrowLeft"){e.preventDefault();move("left");}
+    if(e.key=="ArrowRight"){e.preventDefault();move("right");}
+}
+addBlock();addBlock();render();
+</script>
+</body>
+</html>
+    """
+    html(game_html, height=480)
+
 
 # ---------------------- 底部署名 ----------------------
 st.markdown("---")
