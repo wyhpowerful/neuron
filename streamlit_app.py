@@ -114,11 +114,12 @@ if df is not None:
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
-# 底部署名
+# ========== 修改后的底部署名 ==========
 st.markdown("---")
 st.markdown(
-    "<div style='text-align: center; color: #888888; font-size: 14px;'>"
-    "豫北医学院 · Powered by WYH"
+    "<div style='text-align: center; color: #666666; font-size: 15px; line-height:1.6;'>"
+    "豫北医学院·Powered by 王一浩 牛璐鸣 李雨轩<br>"
+    "指导老师👩‍🏫：丰依凡（超厉害的！）"
     "</div>",
     unsafe_allow_html=True
 )
