@@ -1,7 +1,7 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy import signal
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 
@@ -37,49 +37,236 @@ bounce_html = """
 st.markdown(bounce_html, unsafe_allow_html=True)
 
 st.title("帕金森DBS神经动力学仿真可视化平台")
-st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
+st.markdown("📌 两种使用模式：①基底节环路网络仿真；②上传自己导出的CSV文件")
 
-# 音频：像梦一样自由.mp3，上传到仓库根目录
+# 音频：像梦一样自由.mp3，上传仓库根目录
 st.audio("像梦一样自由.mp3", loop=True, format="audio/mpeg")
 
+# ===================== 内嵌原项目全部代码 start =====================
+# config
+def get_default_config():
+    return {
+        "dt": 0.1,
+        "sim_total_ms": 2000.0,
+        "n_per_nuc": 40,
+        "tau_exc": 3.0,
+        "tau_inh": 6.0,
+        "dbs_freq": 130,
+        "dbs_amp": 60,
+        "dbs_pulse_width": 0.1,
+        "dbs_start_ms": 1000.0,
+    }
 
-@st.cache_data
-def generate_dbs_data(freq, amp, pulse_width, stim_strength, total_time, sample_num):
-    t = np.linspace(0, total_time, sample_num)
-    omega = 2 * np.pi * freq / 1000
-    # 基础膜电位叠加DBS刺激脉冲调制
-    pulse_mod = np.where(np.mod(t, 1000/freq) < pulse_width, stim_strength, 0)
-    stn = -55 + 12 * np.sin(omega * t) + amp * np.sin(2 * omega * t) + pulse_mod*0.4
-    gpe = -60 + 8 * np.sin(omega * t + 0.6) + amp * 0.7 * np.sin(2 * omega * t) + pulse_mod*0.25
-    gpi = -62 + 10 * np.sin(omega * t + 1.2) + amp * 0.8 * np.sin(2 * omega * t) + pulse_mod*0.35
-    df = pd.DataFrame({
-        "time(ms)": t,
-        "STN": stn,
-        "GPe": gpe,
-        "GPi": gpi
-    })
-    pulse_interval = 1000 / freq
-    pulse_times = np.arange(pulse_interval / 2, total_time, pulse_interval)
-    return df, pulse_times
+# neuron_models
+neuron_param = {
+    "Cortex":   {"a": 0.02, "b": 0.2,  "c": -65, "d": 8,  "v_rest": -70, "v_peak": 30, "I_bias": 10, "u0": 0},
+    "Striatum": {"a": 0.01, "b": 0.03, "c": -65, "d": 15, "v_rest": -70, "v_peak": 30, "I_bias": 6,  "u0": 0},
+    "GPe":      {"a": 0.025, "b": 0.01, "c": -65, "d": 12, "v_rest": -70, "v_peak": 30, "I_bias": 12, "u0": 0},
+    "STN":      {"a": 0.01, "b": 0.03, "c": -65, "d": 15, "v_rest": -70, "v_peak": 30, "I_bias": 15, "u0": 0},
+    "GPi":      {"a": 0.025, "b": 0.01, "c": -65, "d": 12, "v_rest": -70, "v_peak": 30, "I_bias": 12, "u0": 0},
+    "Thalamus": {"a": 0.02, "b": 0.25, "c": -65, "d": 2,  "v_rest": -70, "v_peak": 30, "I_bias": 8,  "u0": 0},
+}
 
+# network_topology
+def create_sparse_connect(pre_nuc, post_nuc, n_pre, n_post, prob, weight, syn_type="exc"):
+    rng = np.random.default_rng(42)
+    mat = rng.choice([0, 1], size=(n_post, n_pre), p=[1 - prob, prob])
+    return {"pre": pre_nuc, "post": post_nuc,
+            "matrix": mat, "weight": weight, "syn_type": syn_type}
 
-mode = st.radio("选择数据来源", ["内置仿真模型（可调DBS参数，直接演示）", "上传自己的CSV文件"], horizontal=True)
+def build_network_connectivity(nucleus_list, n_per_nuc, pd_mode=False):
+    conn = {}
+    conn["Cortex_to_Striatum"] = create_sparse_connect("Cortex", "Striatum", n_per_nuc, n_per_nuc, 0.20, 1.0, "exc")
+    conn["STN_to_GPe"]        = create_sparse_connect("STN", "GPe", n_per_nuc, n_per_nuc, 0.20, 1.2, "exc")
+    conn["STN_to_GPi"]        = create_sparse_connect("STN", "GPi", n_per_nuc, n_per_nuc, 0.25, 1.5, "exc")
+    conn["Thalamus_to_Cortex"]= create_sparse_connect("Thalamus", "Cortex", n_per_nuc, n_per_nuc, 0.20, 1.0, "exc")
+    conn["Striatum_to_GPe"]   = create_sparse_connect("Striatum", "GPe", n_per_nuc, n_per_nuc, 0.20, -1.2, "inh")
+    conn["Striatum_to_GPi"]   = create_sparse_connect("Striatum", "GPi", n_per_nuc, n_per_nuc, 0.20, -1.0, "inh")
+    conn["GPe_to_STN"]        = create_sparse_connect("GPe", "STN", n_per_nuc, n_per_nuc, 0.25, -1.5, "inh")
+    conn["GPe_to_GPi"]        = create_sparse_connect("GPe", "GPi", n_per_nuc, n_per_nuc, 0.20, -1.2, "inh")
+    conn["GPi_to_Thalamus"]   = create_sparse_connect("GPi", "Thalamus", n_per_nuc, n_per_nuc, 0.20, -1.2, "inh")
+    if pd_mode:
+        conn["GPe_to_STN"]["weight"]   = -0.5
+        conn["STN_to_GPi"]["weight"]   = 2.5
+        conn["STN_to_GPe"]["weight"]   = 2.0
+        conn["Striatum_to_GPi"]["weight"] = -0.6
+    return conn
+
+# simulation_core
+def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
+    dt = config["dt"]
+    sim_total_ms = config["sim_total_ms"]
+    t_arr = np.arange(0, sim_total_ms, dt)
+    Nt = len(t_arr)
+    n_per_nuc = config["n_per_nuc"]
+    tau_exc = config["tau_exc"]
+    tau_inh = config["tau_inh"]
+    dbs_freq = config["dbs_freq"]
+    dbs_amp = config["dbs_amp"]
+    dbs_start_t = config["dbs_start_ms"]
+    dbs_pw = config.get("dbs_pulse_width", 0.1)
+    dbs_period_ms = 1000.0 / dbs_freq
+    nucleus_list = ["Cortex", "Striatum", "GPe", "STN", "GPi", "Thalamus"]
+    v = {}
+    u = {}
+    I_bias = {}
+    I_syn_exc = {}
+    I_syn_inh = {}
+    spk = {}
+    spike_times = {}
+    lfp = {}
+    rng = np.random.default_rng(2026)
+    for nuc in nucleus_list:
+        p = neuron_param[nuc]
+        v[nuc] = np.ones(n_per_nuc) * p["v_rest"]
+        u[nuc] = np.ones(n_per_nuc) * p["u0"]
+        I_bias[nuc] = p["I_bias"] + rng.uniform(-1.0, 1.0, n_per_nuc)
+        I_syn_exc[nuc] = np.zeros(n_per_nuc)
+        I_syn_inh[nuc] = np.zeros(n_per_nuc)
+        spk[nuc] = np.zeros(n_per_nuc)
+        spike_times[nuc] = [[] for _ in range(n_per_nuc)]
+        lfp[nuc] = np.zeros(Nt)
+    decay_exc = np.exp(-dt / tau_exc)
+    decay_inh = np.exp(-dt / tau_inh)
+    for key in conn:
+        conn[key]["w_mat"] = conn[key]["matrix"] * conn[key]["weight"]
+    trans = [
+        ("Cortex", "Striatum", "exc"), ("STN", "GPe", "exc"),
+        ("STN", "GPi", "exc"), ("Thalamus", "Cortex", "exc"),
+        ("Striatum", "GPe", "inh"), ("Striatum", "GPi", "inh"),
+        ("GPe", "STN", "inh"), ("GPe", "GPi", "inh"),
+        ("GPi", "Thalamus", "inh"),
+    ]
+    for t_idx in range(Nt):
+        t = t_arr[t_idx]
+        for nuc in nucleus_list:
+            I_syn_exc[nuc] *= decay_exc
+            I_syn_inh[nuc] *= decay_inh
+        for pre, post, st in trans:
+            key = f"{pre}_to_{post}"
+            inc = conn[key]["w_mat"].T @ spk[pre]
+            if st == "exc":
+                I_syn_exc[post] += inc
+            else:
+                I_syn_inh[post] += inc
+        for nuc in nucleus_list:
+            p = neuron_param[nuc]
+            a, b, c, d, v_peak = p["a"], p["b"], p["c"], p["d"], p["v_peak"]
+            I_total = I_bias[nuc] + I_syn_exc[nuc] + I_syn_inh[nuc]
+            if nuc == "STN" and dbs_on and t >= dbs_start_t:
+                phase = (t - dbs_start_t) % dbs_period_ms
+                if phase < dbs_pw:
+                    I_total = I_total + dbs_amp
+            dv = 0.04 * v[nuc] ** 2 + 5 * v[nuc] + 140 - u[nuc] + I_total
+            v[nuc] += dv * dt
+            du = a * (b * v[nuc] - u[nuc])
+            u[nuc] += du * dt
+            spike_idx = v[nuc] >= v_peak
+            spk[nuc][:] = 0
+            if np.any(spike_idx):
+                for idx in np.nonzero(spike_idx)[0]:
+                    spike_times[nuc][idx].append(t)
+                spk[nuc][spike_idx] = 1
+                v[nuc][spike_idx] = c
+                u[nuc][spike_idx] += d
+        for nuc in nucleus_list:
+            lfp[nuc][t_idx] = np.mean(v[nuc])
+    return {"t": t_arr, "v": v, "spike": spike_times, "lfp": lfp}
+
+# plot_functions
+plt.rcParams["font.sans-serif"] = ["WenQuanYi Zen Hei","SimHei"]
+plt.rcParams["axes.unicode_minus"] = False
+
+def _get_gpi(data):
+    if isinstance(data, dict):
+        return data.get("GPi", next(iter(data.values())) if data else [])
+    return data
+
+def plot_raster(ax, t, spike_rec, title=""):
+    spike_rec = _get_gpi(spike_rec)
+    ax.set_xlabel("时间 (ms)")
+    ax.set_ylabel("神经元编号")
+    ax.set_title(title)
+    if len(spike_rec) == 0:
+        return
+    for neuron_idx, spike_times in enumerate(spike_rec):
+        st = np.asarray(spike_times)
+        if st.size > 0:
+            ax.plot(st, np.full(st.size, neuron_idx), 'k.', markersize=1)
+    ax.set_xlim(t[0], t[-1])
+
+def plot_lfp(ax, t, lfp, title=""):
+    lfp = _get_gpi(lfp)
+    ax.plot(t, lfp, color="#1f77b4", linewidth=1.0)
+    ax.set_xlabel("时间 (ms)")
+    ax.set_ylabel("LFP")
+    ax.set_title(title)
+    ax.set_xlim(t[0], t[-1])
+
+def plot_stft(ax, t, lfp, fs, title=""):
+    lfp = _get_gpi(lfp)
+    f, t_stft, Zxx = signal.stft(lfp, fs=fs, nperseg=2048, noverlap=1792)
+    im = ax.pcolormesh(t_stft * 1000, f, np.abs(Zxx), shading='gouraud', cmap="jet")
+    ax.set_ylim(0, 60)
+    ax.set_xlabel("时间 (ms)")
+    ax.set_ylabel("频率 (Hz)")
+    ax.set_title(title)
+    plt.colorbar(im, ax=ax)
+    return im
+
+@st.cache_data(max_entries=2)
+def run_all_three_conditions(cfg):
+    fs = 1000.0 / cfg["dt"]
+    n = cfg["n_per_nuc"]
+    nucleus_list = list(neuron_param.keys())
+    conn_norm = build_network_connectivity(nucleus_list, n, pd_mode=False)
+    res_norm = run_simulation(cfg, neuron_param, conn_norm, pd_mode=False, dbs_on=False)
+    conn_pd = build_network_connectivity(nucleus_list, n, pd_mode=True)
+    res_pd = run_simulation(cfg, neuron_param, conn_pd, pd_mode=True, dbs_on=False)
+    conn_pddbs = build_network_connectivity(nucleus_list, n, pd_mode=True)
+    res_pddbs = run_simulation(cfg, neuron_param, conn_pddbs, pd_mode=True, dbs_on=True)
+    return res_norm, res_pd, res_pddbs, fs
+
+# ===================== 内嵌原项目全部代码 end =====================
+
+mode = st.radio("选择数据来源", ["基底节环路网络仿真", "上传自己的CSV文件"], horizontal=True)
 df = None
-pulse_times = []
-title_text = "核团膜电位时序曲线"
 
-if mode == "内置仿真模型（可调DBS参数，直接演示）":
-    st.sidebar.header("⚙️ DBS刺激参数调节")
-    stim_freq = st.sidebar.slider("刺激频率 (Hz)", min_value=5, max_value=60, value=13, step=1)
-    stim_amp = st.sidebar.slider("调制幅值 (mV)", min_value=0.0, max_value=8.0, value=3.0, step=0.5)
-    pulse_width = st.sidebar.slider("刺激脉宽 (ms)", min_value=0.1, max_value=2.0, value=0.4, step=0.1)
-    stim_strength = st.sidebar.slider("刺激强度", min_value=0.0, max_value=5.0, value=2.0, step=0.2)
-    total_time = st.sidebar.slider("仿真总时长 (ms)", min_value=200, max_value=2000, value=1000, step=100)
-    sample_num = st.sidebar.slider("采样点数", min_value=200, max_value=3000, value=1000, step=100)
+if mode == "基底节环路网络仿真":
+    st.sidebar.header("⚙️ 仿真参数设置")
+    base_cfg = get_default_config()
+    cfg = {}
+    cfg["dt"] = st.sidebar.number_input("仿真步长 dt(ms)", value=base_cfg["dt"], min_value=0.05, max_value=0.5, step=0.05)
+    cfg["sim_total_ms"] = st.sidebar.slider("仿真总时长(ms)", min_value=1000, max_value=3000, value=int(base_cfg["sim_total_ms"]), step=200)
+    cfg["n_per_nuc"] = st.sidebar.slider("单核团神经元数量", min_value=10, max_value=60, value=base_cfg["n_per_nuc"], step=5)
+    cfg["tau_exc"] = st.sidebar.slider("兴奋性时间常数(ms)",1.0,8.0,base_cfg["tau_exc"],0.5)
+    cfg["tau_inh"] = st.sidebar.slider("抑制性时间常数(ms)",2.0,12.0,base_cfg["tau_inh"],0.5)
+    cfg["dbs_freq"] = st.sidebar.slider("DBS频率(Hz)",20,180,base_cfg["dbs_freq"],5)
+    cfg["dbs_amp"] = st.sidebar.slider("DBS刺激电流",10,120,base_cfg["dbs_amp"],5)
+    cfg["dbs_pulse_width"] = st.sidebar.number_input("DBS脉宽(ms)",value=base_cfg["dbs_pulse_width"],min_value=0.05,max_value=1.0,step=0.05)
+    cfg["dbs_start_ms"] = st.sidebar.slider("DBS开启时刻(ms)",200,2000,int(base_cfg["dbs_start_ms"]),100)
 
-    df, pulse_times = generate_dbs_data(stim_freq, stim_amp, pulse_width, stim_strength, total_time, sample_num)
-    title_text = f"核团膜电位时序曲线 | DBS频率：{stim_freq} Hz，幅值：{stim_amp} mV"
-    st.success(f"✅ 已生成DBS仿真 | 频率：{stim_freq} Hz，幅值：{stim_amp} mV，脉宽：{pulse_width} ms")
+    run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
+    if run_btn:
+        with st.spinner("正在仿真计算，请等待，神经元数量越大耗时越长……"):
+            res_norm, res_pd, res_pddbs, fs = run_all_three_conditions(cfg)
+            t_norm, t_pd, t_pddbs = res_norm["t"], res_pd["t"], res_pddbs["t"]
+            fig, axes = plt.subplots(3, 3, figsize=(16,12))
+            plot_raster(axes[0,0], t_norm, res_norm["spike"], title="正常 放电栅格图")
+            plot_lfp(axes[0,1], t_norm, res_norm["lfp"], title="正常 LFP")
+            plot_stft(axes[0,2], t_norm, res_norm["lfp"], fs=fs, title="正常 时频图")
+
+            plot_raster(axes[1,0], t_pd, res_pd["spike"], title="PD患病 放电栅格图")
+            plot_lfp(axes[1,1], t_pd, res_pd["lfp"], title="PD患病 LFP")
+            plot_stft(axes[1,2], t_pd, res_pd["lfp"], fs=fs, title="PD患病 时频图")
+
+            plot_raster(axes[2,0], t_pddbs, res_pddbs["spike"], title="PD+DBS刺激 放电栅格图")
+            plot_lfp(axes[2,1], t_pddbs, res_pddbs["lfp"], title="PD+DBS刺激 LFP")
+            plot_stft(axes[2,2], t_pddbs["lfp"], res_pddbs["lfp"], fs=fs, title="PD+DBS刺激 时频图")
+            plt.tight_layout()
+            st.pyplot(fig)
+            st.success("✅仿真完成！上图为：放电栅格、LFP局部场电位、时频分析")
+
 else:
     upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
     if upload_file is not None:
@@ -87,10 +274,9 @@ else:
     else:
         st.info("⬆️ 请上传CSV格式仿真结果文件")
 
-
+# ========= 保留旧CSV模式绘图与缩放滑块 =========
 if df is not None:
     st.subheader("🎚️ 波形缩放调节（拖动滑块来放大缩小，搭配一键重置）")
-    # 两个缩放滑块 + 重置按钮，解决缩放无效的问题
     col_reset, col_x, col_y = st.columns([1, 3, 3])
     with col_reset:
         reset_btn = st.button("🔄 恢复全局视图")
@@ -122,23 +308,19 @@ if df is not None:
     )
 
     if selected_cols:
+        import plotly.express as px
         fig = px.line(
             df,
             x="time(ms)",
             y=selected_cols,
-            title=title_text,
+            title="核团膜电位时序曲线",
             labels={"value": "膜电位 (mV)", "time(ms)": "时间 (ms)", "variable": "核团"}
         )
-        if mode == "内置仿真模型（可调DBS参数，直接演示）":
-            for pt in pulse_times:
-                fig.add_vline(x=pt, line_dash="dot", line_color="red", line_width=1.2)
-
         fig.update_layout(
             height=620,
             xaxis_range=[x_min, x_max],
             yaxis_range=[y_min, y_max]
         )
-        # 关闭容易误触的框选工具
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -152,7 +334,7 @@ if df is not None:
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
-# ========== 修改后的底部文字 ==========
+# ========== 底部署名 ==========
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666666; font-size: 15px; line-height:1.6;'>"
