@@ -41,7 +41,7 @@ st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激�
 
 # QQ音乐防盗链无法外部网页直链播放，此处用公开免费BGM占位；
 # 如果你有饥饿鲨进化mp3文件，上传github仓库，替换成 st.audio("你的文件名.mp3", loop=True)
-st.audio("像梦一样自由歌曲.mp3", loop=True, format="audio/mpeg")
+st.audio("像梦一样自由.mp3", loop=True, format="audio/mpeg")
 
 
 @st.cache_data
