@@ -471,36 +471,49 @@ if df is not None:
         st.warning("请至少勾选一个核团信号进行绘图")
 
 
-# ========== 🎮 【修复后的休闲窗口，内置2048小游戏】 ==========
+# ========== 🎮 【升级版本：点击按钮控制2048，手机友好版】 ==========
 with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会2048", expanded=False):
-    st.markdown("使用方向键 ↑ ↓ ← → 控制方块移动，合并相同数字，合成2048即胜利！")
+    st.markdown("点击下方方向按钮控制方块移动，合并相同数字，合成2048即胜利！")
     game_html = """
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.">
 <style>
 *{box-sizing: border-box}
-.game-container{width:360px;margin:10px auto;font-family:Arial}
+body{margin:0;padding:5px}
+.game-container{width:340px;margin:10px auto;font-family:Arial}
 .grid{display:grid;grid-template-columns: repeat(4, 1fr);gap:8px;background:#bbada0;padding:8px;border-radius:6px}
-.cell{width:76px;height:76px;background:#cdc1b4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:bold;color:#776e65}
+.cell{width:70px;height:70px;background:#cdc1b4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;color:#776e65}
 .t2{background:#eee4da}
 .t4{background:#ede0c8}
 .t8{background:#f2b179;color:white}
 .t16{background:#f59563;color:white}
 .t32{background:#f67c5f;color:white}
 .t64{background:#f65e3b;color:white}
-.t128{background:#edcf72;color:white;font-size:22px}
-.t256{background:#edcc61;color:white;font-size:22px}
-.t512{background:#edc850;color:white;font-size:22px}
-.t1024{background:#edc53f;color:white;font-size:18px}
-.t2048{background:#edc22e;color:white;font-size:18px}
+.t128{background:#edcf72;color:white;font-size:20px}
+.t256{background:#edcc61;color:white;font-size:20px}
+.t512{background:#edc850;color:white;font-size:20px}
+.t1024{background:#edc53f;color:white;font-size:16px}
+.t2048{background:#edc22e;color:white;font-size:16px}
+.control{margin-top:15px;text-align:center}
+.btn{width:70px;height:50px;margin:4px;font-size:20px;border:none;border-radius:8px;background:#d9d2c6;color:#444;font-weight:bold}
+.btn:active{background:#b9b09f}
 </style>
 </head>
 <body>
 <div class="game-container">
 <div class="grid" id="grid"></div>
-<p id="tip" style="text-align:center">分数：0</p>
+<p id="tip" style="text-align:center;font-size:20px">分数：0</p>
+<div class="control">
+<div><button class="btn" onclick="move('up')">↑</button></div>
+<div>
+<button class="btn" onclick="move('left')">←</button>
+<button class="btn" onclick="move('down')">↓</button>
+<button class="btn" onclick="move('right')">→</button>
+</div>
+</div>
 </div>
 <script>
 const gridEl = document.getElementById("grid");
@@ -570,6 +583,7 @@ function move(dir){
     if(JSON.stringify(grid)!==old) addBlock();
     render();
 }
+// 保留电脑方向键兼容
 document.onkeydown = e=>{
     if(e.key=="ArrowUp"){e.preventDefault();move("up");}
     if(e.key=="ArrowDown"){e.preventDefault();move("down");}
@@ -581,7 +595,7 @@ addBlock();addBlock();render();
 </body>
 </html>
     """
-    html(game_html, height=480)
+    html(game_html, height=580)
 
 
 # ---------------------- 底部署名 ----------------------
