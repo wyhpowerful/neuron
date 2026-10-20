@@ -471,24 +471,19 @@ if df is not None:
         st.warning("请至少勾选一个核团信号进行绘图")
 
 
-# ========== 🎮 双游戏：2048 + 躲避飞机大战 + 赞赏按钮 ==========
-with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会小游戏", expanded=False):
-    st.markdown("点击方向按钮操控，电脑方向键也支持！")
+# ========== 🎮 【升级版本：点击按钮控制2048，手机友好版】 ==========
+with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会2048", expanded=False):
+    st.markdown("点击下方方向按钮控制方块移动，合并相同数字，合成2048即胜利！")
     game_html = """
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.">
 <style>
 *{box-sizing: border-box}
 body{margin:0;padding:5px}
-.wrap{width:340px;margin:10px auto;font-family:Arial}
-.switch-bar{text-align:center;margin-bottom:10px}
-.switch-btn{padding:6px 12px;margin:0 4px;border:none;border-radius:6px;background:#ddd}
-.switch-btn.active{background:#07c160;color:white}
-
-/* ====== 2048样式 ====== */
+.game-container{width:340px;margin:10px auto;font-family:Arial}
 .grid{display:grid;grid-template-columns: repeat(4, 1fr);gap:8px;background:#bbada0;padding:8px;border-radius:6px}
 .cell{width:70px;height:70px;background:#cdc1b4;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;color:#776e65}
 .t2{background:#eee4da}
@@ -502,156 +497,36 @@ body{margin:0;padding:5px}
 .t512{background:#edc850;color:white;font-size:20px}
 .t1024{background:#edc53f;color:white;font-size:16px}
 .t2048{background:#edc22e;color:white;font-size:16px}
-
-/* ====== 飞机大战样式 ====== */
-.plane-canvas{width:320px;height:400px;background:#111;border-radius:6px;margin:0 auto;display:block}
-
-/* 通用控制按钮 */
-.control{margin-top:12px;text-align:center}
+.control{margin-top:15px;text-align:center}
 .btn{width:70px;height:50px;margin:4px;font-size:20px;border:none;border-radius:8px;background:#d9d2c6;color:#444;font-weight:bold}
 .btn:active{background:#b9b09f}
-.donate-btn{
-    margin-top: 16px;
-    padding: 10px 20px;
-    border-radius: 10px;
-    border: none;
-    background-color: #07c160;
-    color: white;
-    font-size: 16px;
-    font-weight:bold;
-}
-/* 弹窗 */
-.modal-mask{
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
-    display: none;
-    align-items:center;
-    justify-content:center;
-    z-index:9999;
-}
-.modal-box{
-    width: 300px;
-    background:#fff;
-    border-radius:12px;
-    padding:20px;
-    text-align:center;
-}
-.qrcode-img{
-    width: 200px;
-    margin:10px 0;
-    border-radius: 8px;
-}
-.copy-btn{
-    padding:8px 14px;
-    background:#07c160;
-    color:white;
-    border:none;
-    border-radius:6px;
-    margin:8px;
-}
-.close-btn{
-    margin-top:12px;
-    padding:8px 14px;
-    background:#999;
-    color:white;
-    border:none;
-    border-radius:6px;
-}
-.game-panel{display:none}
-.game-panel.active{display:block}
-.info-text{text-align:center;font-size:18px;margin:8px 0}
 </style>
 </head>
 <body>
-<div class="wrap">
-    <div class="switch-bar">
-        <button class="switch-btn active" onclick="switchGame('g2048')">2048</button>
-        <button class="switch-btn" onclick="switchGame('plane')">飞机躲避</button>
-    </div>
-
-    <!-- 2048游戏 -->
-    <div id="g2048" class="game-panel active">
-        <div class="grid" id="grid"></div>
-        <div class="info-text" id="tip">分数：0</div>
-    </div>
-
-    <!-- 飞机大战 -->
-    <div id="plane" class="game-panel">
-        <canvas id="pc" class="plane-canvas"></canvas>
-        <div class="info-text" id="planeTip">得分：0</div>
-    </div>
-
-    <!-- 方向控制按钮 -->
-    <div class="control">
-        <div><button class="btn" onclick="doMove('up')">↑</button></div>
-        <div>
-            <button class="btn" onclick="doMove('left')">←</button>
-            <button class="btn" onclick="doMove('down')">↓</button>
-            <button class="btn" onclick="doMove('right')">→</button>
-        </div>
-    </div>
-    <div style="text-align:center">
-        <button class="donate-btn" onclick="openModal()">💚 支持一下作者</button>
-    </div>
+<div class="game-container">
+<div class="grid" id="grid"></div>
+<p id="tip" style="text-align:center;font-size:20px">分数：0</p>
+<div class="control">
+<div><button class="btn" onclick="move('up')">↑</button></div>
+<div>
+<button class="btn" onclick="move('left')">←</button>
+<button class="btn" onclick="move('down')">↓</button>
+<button class="btn" onclick="move('right')">→</button>
 </div>
-
-<!-- 赞赏弹窗 -->
-<div class="modal-mask" id="modal">
-    <div class="modal-box">
-        <h4>赞赏支持</h4>
-        <p>微信号：<span id="wxid">wp19903818366</span></p>
-        <button class="copy-btn" onclick="copyWx()">wp19903818366</button>
-        <br>
-        <img class="qrcode-img" src="https://ibb.co/Zp4qW2ZD" alt="微信赞赏码">
-        <p>截图二维码，打开微信扫一扫即可打赏</p>
-        <button class="close-btn" onclick="closeModal()">关闭</button>
-    </div>
 </div>
-
+</div>
 <script>
-// ====================== 全局变量 ======================
-let currentGame = "g2048";
-const wxText = "MyWeChat001"; // 修改为你的微信号
-const modal = document.getElementById("modal");
-
-// ====================== 切换游戏 ======================
-function switchGame(name){
-    currentGame = name;
-    document.querySelectorAll(".game-panel").forEach(p=>p.classList.remove("active"));
-    document.getElementById(name).classList.add("active");
-    document.querySelectorAll(".switch-btn")..forEach(b=>b.classList.remove("active"));
-    event.target.classList.add("active");
-    if(name === "plane") initPlaneGame();
-}
-
-// ====================== 统一移动入口 ======================
-function doMove(dir){
-    if(currentGame === "g2048") move2048(dir);
-    if(currentGame === "plane") planeMove(dir);
-}
-
-// ====================== 弹窗逻辑 ======================
-function openModal(){ modal.style.display = "flex"; }
-function closeModal(){ modal.style.display = "none"; }
-function copyWx(){
-    navigator.clipboard.writeText(wxText).then(()=>{ alert("微信号复制成功！"); })
-}
-
-// ====================== 2048 逻辑 ======================
 const gridEl = document.getElementById("grid");
 const tipEl = document.getElementById("tip");
 let grid = Array(4).fill().map(()=>Array(4).fill(0));
-let score2048 = 0;
-
+let score = 0;
 function randEmpty(){
     let arr=[];
     for(let i=0;i<4;i++){
         for(let j=0;j<4;j++){
-            if(grid[i][j]===0) arr.push([i,j]);
+            if(grid[i][j]===0){
+                arr.push([i,j]);
+            }
         }
     }
     if(arr.length===0) return null;
@@ -662,7 +537,7 @@ function addBlock(){
     if(!p) return;
     grid[p[0]][p[1]] = Math.random()>0.1?2:4;
 }
-function render2048(){
+function render(){
     gridEl.innerHTML="";
     for(let i=0;i<4;i++){
         for(let j=0;j<4;j++){
@@ -673,21 +548,21 @@ function render2048(){
             gridEl.appendChild(d);
         }
     }
-    tipEl.innerText="分数："+score2048;
+    tipEl.innerText="分数："+score;
 }
 function slide(row){
     let a=row.filter(x=>x!==0);
     for(let i=0;i<a.length-1;i++){
         if(a[i]==a[i+1]){
             a[i]*=2;
-            score2048 += a[i];
+            score += a[i];
             a.splice(i+1,1);
         }
     }
     while(a.length<4) a.push(0);
     return a;
 }
-function move2048(dir){
+function move(dir){
     let old = JSON.stringify(grid);
     if(dir=="left") for(let i=0;i<4;i++) grid[i]=slide(grid[i]);
     if(dir=="right") for(let i=0;i<4;i++) grid[i]=slide(grid[i].reverse()).reverse();
@@ -706,91 +581,21 @@ function move2048(dir){
         }
     }
     if(JSON.stringify(grid)!==old) addBlock();
-    render2048();
+    render();
 }
-
-// ====================== 飞机躲避游戏逻辑 ======================
-let canvas, ctx;
-let plane = {x:140, y:340, w:40, h:40};
-let obstacles = [];
-let planeScore = 0;
-let planeRun = false;
-let planeTimer;
-const planeTip = document.getElementById("planeTip");
-
-function initPlaneGame(){
-    canvas = document.getElementById("pc");
-    ctx = canvas.getContext("2d");
-    plane = {x:140, y:340, w:40, h:40};
-    obstacles = [];
-    planeScore = 0;
-    planeRun = true;
-    clearInterval(planeTimer);
-    planeTimer = setInterval(planeLoop, 40);
-    planeTip.innerText = "得分："+planeScore;
-}
-function planeMove(dir){
-    if(!planeRun) return;
-    const sp = 18;
-    if(dir=="left" && plane.x>0) plane.x -= sp;
-    if(dir=="right" && plane.x+plane.w < canvas.width) plane.x += sp;
-    if(dir=="up" && plane.y>0) plane.y -= sp;
-    if(dir=="down" && plane.y+plane.h < canvas.height) plane.y += sp;
-}
-function planeLoop(){
-    ctx.fillStyle="#111";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    // 随机生成障碍
-    if(Math.random()<0.035){
-        obstacles.push({
-            x: Math.random()*(canvas.width-30),
-            y:-30, w:30, h:30
-        })
-    }
-    // 更新障碍
-    for(let i=obstacles.length-1;i>=0;i--){
-        let o = obstacles[i];
-        o.y += 4.;
-        // 出界加分
-        if(o.y>canvas.height){
-            obstacles.splice(i,1);
-            planeScore += 1;
-            planeTip.innerText = "得分："+planeScore;
-            continue;
-        }
-        // 碰撞检测
-        if(checkHit(plane,o)){
-            planeRun = false;
-            clearInterval(planeTimer);
-            planeTip.innerText = "游戏结束！最终得分："+planeScore+"，切换重开";
-        }
-        // 画障碍物
-        ctx.fillStyle="#ff4444";
-        ctx.fillRect(o.x,o.y,o.w,o.h);
-    }
-    // 画我方飞机
-    ctx.fillStyle="#42c9ff";
-    ctx.fillRect(plane.x, plane.y, plane.w, plane.h);
-}
-function checkHit(a,b){
-    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
-}
-
-// ====================== 全局键盘监听 ======================
+// 保留电脑方向键兼容
 document.onkeydown = e=>{
-    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){
-        e.preventDefault();
-        doMove(e.key.replace("Arrow","").toLowerCase());
-    }
+    if(e.key=="ArrowUp"){e.preventDefault();move("up");}
+    if(e.key=="ArrowDown"){e.preventDefault();move("down");}
+    if(e.key=="ArrowLeft"){e.preventDefault();move("left");}
+    if(e.key=="ArrowRight"){e.preventDefault();move("right");}
 }
-
-// 初始化2048
-addBlock();addBlock(); render2048();
+addBlock();addBlock();render();
 </script>
 </body>
 </html>
     """
-    html(game_html, height=780)
+    html(game_html, height=580)
 # ---------------------- 底部署名 ----------------------
 st.markdown("---")
 st.markdown(
