@@ -471,7 +471,7 @@ if df is not None:
         st.warning("请至少勾选一个核团信号进行绘图")
 
 
-# ========== 🎮 【新增：休闲窗口，内置2048小游戏】 ==========
+# ========== 🎮 【修复后的休闲窗口，内置2048小游戏】 ==========
 with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会2048", expanded=False):
     st.markdown("使用方向键 ↑ ↓ ← → 控制方块移动，合并相同数字，合成2048即胜利！")
     game_html = """
@@ -509,9 +509,15 @@ let grid = Array(4).fill().map(()=>Array(4).fill(0));
 let score = 0;
 function randEmpty(){
     let arr=[];
-    for(let i=0;i<4;i++)for(let j=0;j<4;j++)if(grid[i][j]===0)arr.push([i,j]);
+    for(let i=0;i<4;i++){
+        for(let j=0;j<4;j++){
+            if(grid[i][j]===0){
+                arr.push([i,j]);
+            }
+        }
+    }
     if(arr.length===0) return null;
-    return arr[Math.floor(Math.random()*arr.length);
+    return arr[Math.floor(Math.random()*arr.length)];
 }
 function addBlock(){
     let p=randEmpty();
