@@ -243,24 +243,33 @@ if mode == "基底节环路网络仿真":
     cfg["dbs_start_ms"] = st.sidebar.slider("DBS开启时刻(ms)",200,2000,int(base_cfg["dbs_start_ms"]),100)
 
     run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
-    if run_btn:
-        with st.spinner("正在仿真计算，请等待，神经元数量越大耗时越长……"):
-            res_norm, res_pd, res_pddbs, fs = run_all_three_conditions(cfg)
-            t_norm, t_pd, t_pddbs = res_norm["t"], res_pd["t"], res_pddbs["t"]
-            fig, axes = plt.subplots(3, 3, figsize=(16,12))plot_raster(axes[0,0], t_norm, res_norm["spike"]["GPi"], title="正常 GPi 放电栅格图")
-plot_lfp(axes[0,1], t_norm, res_norm["lfp"]["GPi"], title="正常 GPi LFP")
-plot_stft(axes[0,2], t_norm, res_norm["lfp"]["GPi"], fs=fs, title="正常 GPi 时频图")
+  if st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）"):
+    with st.spinner("仿真计算中，请稍等..."):
+        res_norm = run_model(condition="normal")
+        res_pd = run_model(condition="pd")
+        res_pddbs = run_model(condition="dbs")
+        t = res_norm["t"]
+        fs = 1000
 
-plot_raster(axes[1,0], t_pd, res_pd["spike"]["GPi"], title="PD患病 GPi 放电栅格图")
-plot_lfp(axes[1,1], t_pd, res_pd["lfp"]["GPi"], title="PD患病 GPi LFP")
-plot_stft(axes[1,2], t_pd, res_pd["lfp"]["GPi"], fs=fs, title="PD患病 GPi 时频图")
+        fig, axes = plt.subplots(3, 3, figsize=(18, 12))
 
-plot_raster(axes[2,0], t_pddbs, res_pddbs["spike"]["GPi"], title="PD+DBS刺激 GPi 放电栅格图")
-plot_lfp(axes[2,1], t_pddbs, res_pddbs["lfp"]["GPi"], title="PD+DBS刺激 GPi LFP")
-plot_stft(axes[2,2], t_pddbs, res_pddbs["lfp"]["GPi"], fs=fs, title="PD+DBS刺激 GPi 时频图")
-            plt.tight_layout()
-            st.pyplot(fig)
-            st.success("✅仿真完成！上图为：放电栅格、LFP局部场电位、时频分析")
+        # 第一行：正常
+        plot_raster(axes[0,0], t, res_norm["spike"]["GPi"], title="正常 GPi 放电栅格图")
+        plot_lfp(axes[0,1], t, res_norm["lfp"]["GPi"], title="正常 GPi LFP")
+        plot_stft(axes[0,2], t, res_norm["lfp"]["GPi"], fs=fs, title="正常 GPi 时频图")
+
+        # 第二行：PD
+        plot_raster(axes[1,0], t, res_pd["spike"]["GPi"], title="PD患病 GPi 放电栅格图")
+        plot_lfp(axes[1,1], t, res_pd["lfp"]["GPi"], title="PD患病 GPi LFP")
+        plot_stft(axes[1,2], t, res_pd["lfp"]["GPi"], fs=fs, title="PD患病 GPi 时频图")
+
+        # 第三行：PD+DBS
+        plot_raster(axes[2,0], t, res_pddbs["spike"]["GPi"], title="PD+DBS刺激 GPi 放电栅格图")
+        plot_lfp(axes[2,1], t, res_pddbs["lfp"]["GPi"], title="PD+DBS刺激 GPi LFP")
+        plot_stft(axes[2,2], t, res_pddbs["lfp"]["GPi"], fs=fs, title="PD+DBS刺激 GPi 时频图")
+
+        fig.tight_layout()
+        st.pyplot(fig)
 
 else:
     upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
