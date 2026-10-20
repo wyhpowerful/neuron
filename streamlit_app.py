@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import pandas as pd
 import plotly.express as px
-from streamlit.components.v1 import html
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 
@@ -42,12 +41,23 @@ st.markdown(bounce_html, unsafe_allow_html=True)
 st.title("帕金森DBS神经动力学仿真可视化平台")
 st.markdown("📌 两种使用模式：①基底节环路网络仿真；②上传自己导出的CSV文件")
 
-# ========== 【新增1：版本+更新日志板块】 ==========
+# ==========【新增：顶部免责声明】 ==========
+with st.expander("⚠️ 免责声明", expanded=True):
+    st.warning("""
+本平台仅为生物医学工程课程学习、科研教学仿真演示工具。
+1. 所有仿真数据、模型结果均为理想化数值模拟，**不能替代临床医学诊断、治疗方案参考，不可用于实际病人诊疗**。
+2. 模型参数、环路连接为简化理论模型，与真实人体大脑存在差距。
+3. 若用于报告、作业引用，请自行核对文献资料；项目作者不对使用本工具产生的任何直接或间接后果承担责任。
+4. 本项目仅供非盈利学习交流使用，禁止商用。
+""")
+
+# ========== 【版本+更新日志板块】 ==========
 with st.expander("📋 版本信息 & 更新日志", expanded=True):
-    st.markdown("**当前版本：V1.2 | 更新日期：2026.10.20**")
+    st.markdown("**当前版本：V1.3 | 更新日期：2026.10.20**")
     st.markdown("""
+    - [2026.10.20] V1.3：页面顶部增加免责声明；侧边栏新增【查看说明】按钮，点击弹出参数解释气泡
     - [2026.10.20] V1.2：新增【休闲窗口】，内置2048小游戏
-    - [2026.10.20] V1.1：新增参数详情弹窗说明、参数原理解释模块
+    - [2026.10.20] V1.1：新增参数详情折叠说明、参数原理解释模块
     - [2026.10.19] V1.0：完成基础三工况仿真、栅格图/LFP/时频图、CSV上传绘图功能
     """)
     st.info("💡 每次更新代码时，在这里直接修改版本号、日期、新增条目即可。")
@@ -66,7 +76,7 @@ def get_default_config():
         "dbs_start_ms": 1000.0,
     }
 
-# ---------------------- 参数说明字典【新增2：每个参数的说明，你后续可以继续扩充】 ----------------------
+# ---------------------- 参数说明字典 ----------------------
 param_info = {
     "dt": {
         "brief": "仿真时间步长",
@@ -90,7 +100,7 @@ param_info = {
     },
     "dbs_freq": {
         "brief": "DBS刺激频率",
-        "detail": "深部脑刺激脉冲重复频率，临床治疗帕金森STN-DBS常规使用130Hz左右。低频刺激往往会加重beta振荡，高频才起到抑制病理性同步放电的效果。"
+        "detail": "深部脑刺激脉冲重复频率，临床治疗帕金森STN‑DBS常规使用130Hz左右。低频刺激往往会加重beta振荡，高频才起到抑制病理性同步放电的效果。"
     },
     "dbs_amp": {
         "brief": "DBS刺激电流强度",
@@ -316,53 +326,109 @@ mode = st.radio(
 
 df = None
 
-# ---------------------- 模式1：环路仿真 + 侧边栏参数（带展开说明） ----------------------
+# ---------------------- 模式1：环路仿真 + 侧边栏参数（【新增popover查看说明按钮】） ----------------------
 if mode == "基底节环路网络仿真":
     st.sidebar.header("⚙️ 仿真参数设置")
 
     base_cfg = get_default_config()
     cfg = {}
 
-    # ========== 侧边栏每一个参数，都带上展开详情 ==========
     with st.sidebar:
         st.markdown("#### 📐 基础仿真参数")
-        with st.expander(f'dt — {param_info["dt"]["brief"]}'):
-            st.info(param_info["dt"]["detail"])
-        cfg["dt"] = st.number_input("仿真步长 dt(ms)", value=base_cfg["dt"], min_value=0.05, max_value=0.5, step=0.05)
 
-        with st.expander(f'sim_total_ms — {param_info["sim_total_ms"]["brief"]}'):
-            st.info(param_info["sim_total_ms"]["detail"])
-        cfg["sim_total_ms"] = st.slider("仿真总时长(ms)", min_value=1000, max_value=3000, value=int(base_cfg["sim_total_ms"]), step=200)
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'dt — {param_info["dt"]["brief"]}'):
+                st.info(param_info["dt"]["detail"])
+            cfg["dt"] = st.number_input("仿真步长 dt(ms)", value=base_cfg["dt"], min_value=0.05, max_value=0.5, step=0.05)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['dt']['brief']}**")
+                st.markdown(param_info["dt"]["detail"])
 
-        with st.expander(f'n_per_nuc — {param_info["n_per_nuc"]["brief"]}'):
-            st.info(param_info["n_per_nuc"]["detail"])
-        cfg["n_per_nuc"] = st.slider("单核团神经元数量", min_value=10, max_value=60, value=base_cfg["n_per_nuc"], step=5)
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'sim_total_ms — {param_info["sim_total_ms"]["brief"]}'):
+                st.info(param_info["sim_total_ms"]["detail"])
+            cfg["sim_total_ms"] = st.slider("仿真总时长(ms)", min_value=1000, max_value=3000, value=int(base_cfg["sim_total_ms"]), step=200)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['sim_total_ms']['brief']}**")
+                st.markdown(param_info["sim_total_ms"]["detail"])
+
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'n_per_nuc — {param_info["n_per_nuc"]["brief"]}'):
+                st.info(param_info["n_per_nuc"]["detail"])
+            cfg["n_per_nuc"] = st.slider("单核团神经元数量", min_value=10, max_value=60, value=base_cfg["n_per_nuc"], step=5)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['n_per_nuc']['brief']}**")
+                st.markdown(param_info["n_per_nuc"]["detail"])
 
         st.markdown("#### 🧠 突触动力学参数")
-        with st.expander(f'tau_exc — {param_info["tau_exc"]["brief"]}'):
-            st.info(param_info["tau_exc"]["detail"])
-        cfg["tau_exc"] = st.slider("兴奋性时间常数(ms)", 1.0, 8.0, base_cfg["tau_exc"], 0.5)
 
-        with st.expander(f'tau_inh — {param_info["tau_inh"]["brief"]}'):
-            st.info(param_info["tau_inh"]["detail"])
-        cfg["tau_inh"] = st.slider("抑制性时间常数(ms)", 2.0, 12.0, base_cfg["tau_inh"], 0.5)
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'tau_exc — {param_info["tau_exc"]["brief"]}'):
+                st.info(param_info["tau_exc"]["detail"])
+            cfg["tau_exc"] = st.slider("兴奋性时间常数(ms)", 1.0, 8.0, base_cfg["tau_exc"], 0.5)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['tau_exc']['brief']}**")
+                st.markdown(param_info["tau_exc"]["detail"])
+
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'tau_inh — {param_info["tau_inh"]["brief"]}'):
+                st.info(param_info["tau_inh"]["detail"])
+            cfg["tau_inh"] = st.slider("抑制性时间常数(ms)", 2.0, 12.0, base_cfg["tau_inh"], 0.5)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['tau_inh']['brief']}**")
+                st.markdown(param_info["tau_inh"]["detail"])
 
         st.markdown("#### ⚡ DBS刺激参数")
-        with st.expander(f'dbs_freq — {param_info["dbs_freq"]["brief"]}'):
-            st.info(param_info["dbs_freq"]["detail"])
-        cfg["dbs_freq"] = st.slider("DBS频率(Hz)", 20, 180, base_cfg["dbs_freq"], 5)
 
-        with st.expander(f'dbs_amp — {param_info["dbs_amp"]["brief"]}'):
-            st.info(param_info["dbs_amp"]["detail"])
-        cfg["dbs_amp"] = st.slider("DBS刺激电流", 10, 120, base_cfg["dbs_amp"], 5)
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'dbs_freq — {param_info["dbs_freq"]["brief"]}'):
+                st.info(param_info["dbs_freq"]["detail"])
+            cfg["dbs_freq"] = st.slider("DBS频率(Hz)", 20, 180, base_cfg["dbs_freq"], 5)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['dbs_freq']['brief']}**")
+                st.markdown(param_info["dbs_freq"]["detail"])
 
-        with st.expander(f'dbs_pulse_width — {param_info["dbs_pulse_width"]["brief"]}'):
-            st.info(param_info["dbs_pulse_width"]["detail"])
-        cfg["dbs_pulse_width"] = st.number_input("DBS脉宽(ms)", value=base_cfg["dbs_pulse_width"], min_value=0.05, max_value=1.0, step=0.05)
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'dbs_amp — {param_info["dbs_amp"]["brief"]}'):
+                st.info(param_info["dbs_amp"]["detail"])
+            cfg["dbs_amp"] = st.slider("DBS刺激电流", 10, 120, base_cfg["dbs_amp"], 5)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['dbs_amp']['brief']}**")
+                st.markdown(param_info["dbs_amp"]["detail"])
 
-        with st.expander(f'dbs_start_ms — {param_info["dbs_start_ms"]["brief"]}'):
-            st.info(param_info["dbs_start_ms"]["detail"])
-        cfg["dbs_start_ms"] = st.slider("DBS开启时刻(ms)", 200, 2000, int(base_cfg["dbs_start_ms"]), 100)
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'dbs_pulse_width — {param_info["dbs_pulse_width"]["brief"]}'):
+                st.info(param_info["dbs_pulse_width"]["detail"])
+            cfg["dbs_pulse_width"] = st.number_input("DBS脉宽(ms)", value=base_cfg["dbs_pulse_width"], min_value=0.05, max_value=1.0, step=0.05)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['dbs_pulse_width']['brief']}**")
+                st.markdown(param_info["dbs_pulse_width"]["detail"])
+
+        col1, col2 = st.columns([4,1])
+        with col1:
+            with st.expander(f'dbs_start_ms — {param_info["dbs_start_ms"]["brief"]}'):
+                st.info(param_info["dbs_start_ms"]["detail"])
+            cfg["dbs_start_ms"] = st.slider("DBS开启时刻(ms)", 200, 2000, int(base_cfg["dbs_start_ms"]), 100)
+        with col2:
+            with st.popover("说明"):
+                st.markdown(f"**{param_info['dbs_start_ms']['brief']}**")
+                st.markdown(param_info["dbs_start_ms"]["detail"])
 
     run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
 
@@ -470,8 +536,8 @@ if df is not None:
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
-
-# ========== 🎮 【升级版本：点击按钮控制2048，手机友好版】 ==========
+# ========== 🎮 休闲窗口 2048 ==========
+from streamlit.components.v1 import html
 with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会2048", expanded=False):
     st.markdown("点击下方方向按钮控制方块移动，合并相同数字，合成2048即胜利！")
     game_html = """
@@ -583,7 +649,6 @@ function move(dir){
     if(JSON.stringify(grid)!==old) addBlock();
     render();
 }
-// 保留电脑方向键兼容
 document.onkeydown = e=>{
     if(e.key=="ArrowUp"){e.preventDefault();move("up");}
     if(e.key=="ArrowDown"){e.preventDefault();move("down");}
@@ -596,12 +661,13 @@ addBlock();addBlock();render();
 </html>
     """
     html(game_html, height=580)
+
 # ---------------------- 底部署名 ----------------------
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666666; font-size: 15px; line-height:1.6;'>"
     "🏫豫北医学院·王一浩 牛璐鸣 李雨轩<br>"
-    "指导教师👩‍🏫：丰依凡"
+    "指导教师👩‍🏫：丰依凡（超厉害的🤩）"
     "</div>",
     unsafe_allow_html=True,
 )
