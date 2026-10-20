@@ -1,23 +1,61 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+import numpy as np
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 st.title("帕金森DBS神经动力学仿真可视化平台")
-st.markdown("📌 上传仿真输出的CSV文件，查看核团电位时序曲线（STN/GPe/GPi等）")
+st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
 
-upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
 
-if upload_file is not None:
-    df = pd.read_csv(upload_file)
+@st.cache_data
+def generate_dbs_data(freq, amp):
+    t = np.linspace(0, 1000, 1000)
+    omega = 2 * np.pi * freq / 1000
+    stn = -55 + 12 * np.sin(omega * t) + amp * np.sin(2 * omega * t)
+    gpe = -60 + 8 * np.sin(omega * t + 0.6) + amp * 0.7 * np.sin(2 * omega * t)
+    gpi = -62 + 10 * np.sin(omega * t + 1.2) + amp * 0.8 * np.sin(2 * omega * t)
+    df = pd.DataFrame({
+        "time(ms)": t,
+        "STN": stn,
+        "GPe": gpe,
+        "GPi": gpi
+    })
+    # 计算刺激脉冲时刻
+    pulse_interval = 1000 / freq
+    pulse_times = np.arange(pulse_interval / 2, 1000, pulse_interval)
+    return df, pulse_times
+
+
+mode = st.radio("选择数据来源", ["内置仿真模型（可调DBS参数，直接演示）", "上传自己的CSV文件"], horizontal=True)
+df = None
+pulse_times = []
+stim_freq = 13
+stim_amp = 3
+
+if mode == "内置仿真模型（可调DBS参数，直接演示）":
+    st.sidebar.header("⚙️ DBS刺激参数调节")
+    stim_freq = st.sidebar.slider("刺激频率 (Hz)", min_value=5, max_value=60, value=13, step=1)
+    stim_amp = st.sidebar.slider("刺激幅值 (mV)", min_value=0, max_value=8, value=3, step=0.5)
+    df, pulse_times = generate_dbs_data(stim_freq, stim_amp)
+    st.success(f"✅ 已生成DBS仿真 | 频率：{stim_freq} Hz，幅值：{stim_amp} mV")
+else:
+    upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
+    if upload_file is not None:
+        df = pd.read_csv(upload_file)
+    else:
+        st.info("⬆️ 请上传CSV格式仿真结果文件")
+
+
+if df is not None:
     st.subheader("📋 数据预览")
     st.dataframe(df.head(15), use_container_width=True)
 
-    # 假设第一列是时间
     time_col = df.columns[0]
     signal_cols = df.columns[1:]
 
-    st.sidebar.header("⚙️ 绘图设置")
+    st.sidebar.header("📈 绘图设置")
     selected_cols = st.sidebar.multiselect(
         "选择需要绘制的核团信号",
         options=signal_cols,
@@ -29,12 +67,15 @@ if upload_file is not None:
             df,
             x=time_col,
             y=selected_cols,
-            title="核团膜电位时序变化曲线",
+            title=f"核团膜电位时序曲线 | DBS频率：{stim_freq if mode == '内置仿真模型（可调DBS参数，直接演示）' else '外部导入'} Hz，幅值：{stim_amp if mode == '内置仿真模型（可调DBS参数，直接演示）' else '外部导入'} mV",
             labels={"value": "膜电位 (mV)", time_col: "时间 (ms)", "variable": "核团"}
         )
-        fig.update_layout(height=600)
+        # 给内置模式添加红色刺激竖线
+        if mode == "内置仿真模型（可调DBS参数，直接演示）":
+            for pt in pulse_times:
+                fig.add_vline(x=pt, line_dash="dot", line_color="red", line_width=1.2)
+
+        fig.update_layout(height=620)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
-else:
-    st.info("⬆️ 请上传CSV格式仿真结果文件")
