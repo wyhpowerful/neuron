@@ -50,14 +50,15 @@ if df is not None:
     st.subheader("📋 数据预览")
     st.dataframe(df.head(15), use_container_width=True)
 
-    time_col = df.columns[0]
-    signal_cols = df.columns[1:]
+    # 固定第一列为时间轴
+    time_col = "time(ms)"
+    signal_cols = ["STN", "GPe", "GPi"]
 
     st.sidebar.header("📈 绘图设置")
     selected_cols = st.sidebar.multiselect(
         "选择需要绘制的核团信号",
         options=signal_cols,
-        default=list(signal_cols)
+        default=signal_cols
     )
 
     if selected_cols:
