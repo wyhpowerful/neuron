@@ -244,7 +244,7 @@ if mode == "基底节环路网络仿真":
 
     run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
   if st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）"):
-    with st.spinner("仿真计算中，请稍等..."):
+      with st.spinner("仿真计算中，请稍等..."):
         res_norm = run_model(condition="normal")
         res_pd = run_model(condition="pd")
         res_pddbs = run_model(condition="dbs")
