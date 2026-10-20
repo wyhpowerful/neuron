@@ -89,46 +89,45 @@ else:
 
 
 if df is not None:
-    st.subheader("📋 数据预览")
-    st.dataframe(df.head(15), use_container_width=True)
-
-    time_col = "time(ms)"
-    signal_cols = ["STN", "GPe", "GPi"]
+    st.subheader("🎚️ 波形缩放调节（拖动滑块来放大缩小，搭配一键重置）")
+    # 两个缩放滑块 + 重置按钮，解决缩放无效的问题
+    col_reset, col_x, col_y = st.columns([1, 3, 3])
+    with col_reset:
+        reset_btn = st.button("🔄 恢复全局视图")
+    with col_x:
+        x_min, x_max = st.slider(
+            "⏱️ 时间范围（ms）",
+            min_value=float(df["time(ms)"].min()),
+            max_value=float(df["time(ms)"].max()),
+            value=(float(df["time(ms)"].min()), float(df["time(ms)"].max())) if not reset_btn else (float(df["time(ms)"].min()), float(df["time(ms)"].max())),
+            step=1.0
+        )
+    with col_y:
+        all_y = df[["STN","GPe","GPi"]]
+        y_min_global = float(all_y.min().min())
+        y_max_global = float(all_y.max().max())
+        y_min, y_max = st.slider(
+            "⚡ 膜电位范围（mV）",
+            min_value=y_min_global,
+            max_value=y_max_global,
+            value=(y_min_global, y_max_global) if not reset_btn else (y_min_global, y_max_global),
+            step=0.01
+        )
 
     st.sidebar.header("📈 绘图设置")
     selected_cols = st.sidebar.multiselect(
         "选择需要绘制的核团信号",
-        options=signal_cols,
-        default=signal_cols
+        options=["STN", "GPe", "GPi"],
+        default=["STN", "GPe", "GPi"]
     )
-
-    # 波形缩放调节滑块
-    st.subheader("🎚️ 波形缩放调节滑块")
-    col1, col2 = st.columns(2)
-    with col1:
-        x_min, x_max = st.slider(
-            "⏱️ 时间范围（ms）",
-            min_value=float(df[time_col].min()),
-            max_value=float(df[time_col].max()),
-            value=(float(df[time_col].min()), float(df[time_col].max())),
-            step=1.0
-        )
-    with col2:
-        y_min, y_max = st.slider(
-            "⚡ 膜电位范围（mV）",
-            min_value=float(df[selected_cols].min().min()),
-            max_value=float(df[selected_cols].max().max()),
-            value=(float(df[selected_cols].min().min()), float(df[selected_cols].max().max())),
-            step=0.01
-        )
 
     if selected_cols:
         fig = px.line(
             df,
-            x=time_col,
+            x="time(ms)",
             y=selected_cols,
             title=title_text,
-            labels={"value": "膜电位 (mV)", time_col: "时间 (ms)", "variable": "核团"}
+            labels={"value": "膜电位 (mV)", "time(ms)": "时间 (ms)", "variable": "核团"}
         )
         if mode == "内置仿真模型（可调DBS参数，直接演示）":
             for pt in pulse_times:
@@ -139,7 +138,7 @@ if df is not None:
             xaxis_range=[x_min, x_max],
             yaxis_range=[y_min, y_max]
         )
-        # 移除框选相关按钮，避免误触
+        # 关闭容易误触的框选工具
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -149,16 +148,16 @@ if df is not None:
                 'modeBarButtonsToRemove': ['select2d', 'lasso2d','zoom2d']
             }
         )
-        st.info("💡 操作提示：拖动上方滑块放大缩小波形区间，稳定无框选误触！")
+        st.info("💡 使用方法：拖动时间滑块截取一小段时间，就实现放大；点【恢复全局视图】回到全貌！")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
-# ========== 底部署名 ==========
+# ========== 修改后的底部文字 ==========
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666666; font-size: 15px; line-height:1.6;'>"
-    "豫北医学院·Powered by 王一浩 牛璐鸣 李雨轩<br>"
-    "指导老师👩‍🏫：丰依凡（超厉害的！）"
+    "🏫豫北医学院·王一浩 牛璐鸣 李雨轩<br>"
+    "指导教师👩‍🏫：丰依凡"
     "</div>",
     unsafe_allow_html=True
 )
