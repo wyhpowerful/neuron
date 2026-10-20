@@ -5,21 +5,33 @@ import numpy as np
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 
-# ---------------------- 弹跳👀动画CSS ----------------------
+# ---------------------- 多个👀错开弹跳动画CSS ----------------------
 bounce_html = """
 <style>
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-18px); }
+  50% { transform: translateY(-20px); }
 }
-.bounce-eyes {
-  font-size: 42px;
-  animation: bounce 0.7s ease-in-out infinite;
-  display: inline-block;
+.eye1 {
+  font-size:44px;
+  animation: bounce 0.6s ease-in-out infinite;
+  display:inline-block;
+}
+.eye2 {
+  font-size:44px;
+  animation: bounce 0.6s ease-in-out 0.15s infinite;
+  display:inline-block;
+}
+.eye3 {
+  font-size:44px;
+  animation: bounce 0.6s ease-in-out 0.3s infinite;
+  display:inline-block;
 }
 </style>
-<div style="text-align:center; margin-bottom:10px;">
-  <span class="bounce-eyes">👀</span>
+<div style="text-align:center; margin-bottom:12px;">
+  <span class="eye1">👀</span>&nbsp;&nbsp;
+  <span class="eye2">👀</span>&nbsp;&nbsp;
+  <span class="eye3">👀</span>
 </div>
 """
 st.markdown(bounce_html, unsafe_allow_html=True)
@@ -27,8 +39,9 @@ st.markdown(bounce_html, unsafe_allow_html=True)
 st.title("帕金森DBS神经动力学仿真可视化平台")
 st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
 
-# 背景音乐（循环，需要手动点播放，浏览器不允许无声自动播放）
-st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", loop=True, format="audio/mpeg", alt="背景音乐")
+# QQ音乐防盗链无法外部网页直链播放，此处用公开免费BGM占位；
+# 如果你有饥饿鲨进化mp3文件，上传github仓库，替换成 st.audio("你的文件名.mp3", loop=True)
+st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", loop=True, format="audio/mpeg")
 
 
 @st.cache_data
