@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import numpy as np
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
@@ -22,7 +21,6 @@ def generate_dbs_data(freq, amp):
         "GPe": gpe,
         "GPi": gpi
     })
-    # 计算刺激脉冲时刻
     pulse_interval = 1000 / freq
     pulse_times = np.arange(pulse_interval / 2, 1000, pulse_interval)
     return df, pulse_times
@@ -31,14 +29,14 @@ def generate_dbs_data(freq, amp):
 mode = st.radio("选择数据来源", ["内置仿真模型（可调DBS参数，直接演示）", "上传自己的CSV文件"], horizontal=True)
 df = None
 pulse_times = []
-stim_freq = 13
-stim_amp = 3
+title_text = "核团膜电位时序曲线"
 
 if mode == "内置仿真模型（可调DBS参数，直接演示）":
     st.sidebar.header("⚙️ DBS刺激参数调节")
     stim_freq = st.sidebar.slider("刺激频率 (Hz)", min_value=5, max_value=60, value=13, step=1)
-    stim_amp = st.sidebar.slider("刺激幅值 (mV)", min_value=0, max_value=8, value=3, step=0.5)
+    stim_amp = st.sidebar.slider("刺激幅值 (mV)", min_value=0.0, max_value=8.0, value=3.0, step=0.5)
     df, pulse_times = generate_dbs_data(stim_freq, stim_amp)
+    title_text = f"核团膜电位时序曲线 | DBS频率：{stim_freq} Hz，幅值：{stim_amp} mV"
     st.success(f"✅ 已生成DBS仿真 | 频率：{stim_freq} Hz，幅值：{stim_amp} mV")
 else:
     upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
@@ -67,10 +65,9 @@ if df is not None:
             df,
             x=time_col,
             y=selected_cols,
-            title=f"核团膜电位时序曲线 | DBS频率：{stim_freq if mode == '内置仿真模型（可调DBS参数，直接演示）' else '外部导入'} Hz，幅值：{stim_amp if mode == '内置仿真模型（可调DBS参数，直接演示）' else '外部导入'} mV",
+            title=title_text,
             labels={"value": "膜电位 (mV)", time_col: "时间 (ms)", "variable": "核团"}
         )
-        # 给内置模式添加红色刺激竖线
         if mode == "内置仿真模型（可调DBS参数，直接演示）":
             for pt in pulse_times:
                 fig.add_vline(x=pt, line_dash="dot", line_color="red", line_width=1.2)
