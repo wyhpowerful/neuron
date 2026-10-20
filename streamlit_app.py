@@ -74,14 +74,6 @@ if df is not None:
 
         fig.update_layout(height=620)
         st.plotly_chart(fig, use_container_width=True)
-
-        # ========== 下载高清图片按钮 ==========
-        img_bytes = fig.to_image(format="png", width=1200, height=700, scale=2)
-        st.download_button(
-            label="💾 下载曲线图（高清PNG）",
-            data=img_bytes,
-            file_name="DBS电位曲线图.png",
-            mime="image/png"
-        )
+        st.info("💡 保存图片：点击图表右上角相机图标直接截图保存")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
