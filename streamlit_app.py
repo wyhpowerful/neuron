@@ -50,7 +50,6 @@ if df is not None:
     st.subheader("📋 数据预览")
     st.dataframe(df.head(15), use_container_width=True)
 
-    # 固定第一列为时间轴
     time_col = "time(ms)"
     signal_cols = ["STN", "GPe", "GPi"]
 
@@ -75,5 +74,14 @@ if df is not None:
 
         fig.update_layout(height=620)
         st.plotly_chart(fig, use_container_width=True)
+
+        # ========== 下载高清图片按钮 ==========
+        img_bytes = fig.to_image(format="png", width=1200, height=700, scale=2)
+        st.download_button(
+            label="💾 下载曲线图（高清PNG）",
+            data=img_bytes,
+            file_name="DBS电位曲线图.png",
+            mime="image/png"
+        )
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
