@@ -178,11 +178,6 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
 # plot_functions
 plt.rcParams["axes.unicode_minus"] = False
 
-def _get_gpi(data):
-    if isinstance(data, dict):
-        return data.get("GPi", next(iter(data.values())) if data else [])
-    return data
-
 def plot_raster(ax, t, spike_rec, title=""):
     spike_rec = _get_gpi(spike_rec)
     ax.set_xlabel("时间 (ms)")
@@ -252,18 +247,17 @@ if mode == "基底节环路网络仿真":
         with st.spinner("正在仿真计算，请等待，神经元数量越大耗时越长……"):
             res_norm, res_pd, res_pddbs, fs = run_all_three_conditions(cfg)
             t_norm, t_pd, t_pddbs = res_norm["t"], res_pd["t"], res_pddbs["t"]
-            fig, axes = plt.subplots(3, 3, figsize=(16,12))
-            plot_raster(axes[0,0], t_norm, res_norm["spike"], title="正常 放电栅格图")
-            plot_lfp(axes[0,1], t_norm, res_norm["lfp"], title="正常 LFP")
-            plot_stft(axes[0,2], t_norm, res_norm["lfp"], fs=fs, title="正常 时频图")
+            fig, axes = plt.subplots(3, 3, figsize=(16,12))plot_raster(axes[0,0], t_norm, res_norm["spike"]["GPi"], title="正常 GPi 放电栅格图")
+plot_lfp(axes[0,1], t_norm, res_norm["lfp"]["GPi"], title="正常 GPi LFP")
+plot_stft(axes[0,2], t_norm, res_norm["lfp"]["GPi"], fs=fs, title="正常 GPi 时频图")
 
-            plot_raster(axes[1,0], t_pd, res_pd["spike"], title="PD患病 放电栅格图")
-            plot_lfp(axes[1,1], t_pd, res_pd["lfp"], title="PD患病 LFP")
-            plot_stft(axes[1,2], t_pd, res_pd["lfp"], fs=fs, title="PD患病 时频图")
+plot_raster(axes[1,0], t_pd, res_pd["spike"]["GPi"], title="PD患病 GPi 放电栅格图")
+plot_lfp(axes[1,1], t_pd, res_pd["lfp"]["GPi"], title="PD患病 GPi LFP")
+plot_stft(axes[1,2], t_pd, res_pd["lfp"]["GPi"], fs=fs, title="PD患病 GPi 时频图")
 
-            plot_raster(axes[2,0], t_pddbs, res_pddbs["spike"], title="PD+DBS刺激 放电栅格图")
-            plot_lfp(axes[2,1], t_pddbs, res_pddbs["lfp"], title="PD+DBS刺激 LFP")
-            plot_stft(axes[2,2], t_pddbs["lfp"], fs=fs, title="PD+DBS刺激 时频图")
+plot_raster(axes[2,0], t_pddbs, res_pddbs["spike"]["GPi"], title="PD+DBS刺激 GPi 放电栅格图")
+plot_lfp(axes[2,1], t_pddbs, res_pddbs["lfp"]["GPi"], title="PD+DBS刺激 GPi LFP")
+plot_stft(axes[2,2], t_pddbs, res_pddbs["lfp"]["GPi"], fs=fs, title="PD+DBS刺激 GPi 时频图")
             plt.tight_layout()
             st.pyplot(fig)
             st.success("✅仿真完成！上图为：放电栅格、LFP局部场电位、时频分析")
