@@ -1,7 +1,9 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot.pyplot as plt
 from scipy import signal
+import pandas as pd
+import plotly.express as px
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 
@@ -174,7 +176,6 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
     return {"t": t_arr, "v": v, "spike": spike_times, "lfp": lfp}
 
 # plot_functions
-plt.rcParams["font.sans-serif"] = ["WenQuanYi Zen Hei","SimHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
 def _get_gpi(data):
@@ -262,7 +263,7 @@ if mode == "基底节环路网络仿真":
 
             plot_raster(axes[2,0], t_pddbs, res_pddbs["spike"], title="PD+DBS刺激 放电栅格图")
             plot_lfp(axes[2,1], t_pddbs, res_pddbs["lfp"], title="PD+DBS刺激 LFP")
-            plot_stft(axes[2,2], t_pddbs["lfp"], res_pddbs["lfp"], fs=fs, title="PD+DBS刺激 时频图")
+            plot_stft(axes[2,2], t_pddbs, res_pddbs["lfp"], res_pddbs["lfp"], fs=fs, title="PD+DBS刺激 时频图")
             plt.tight_layout()
             st.pyplot(fig)
             st.success("✅仿真完成！上图为：放电栅格、LFP局部场电位、时频分析")
@@ -308,7 +309,6 @@ if df is not None:
     )
 
     if selected_cols:
-        import plotly.express as px
         fig = px.line(
             df,
             x="time(ms)",
