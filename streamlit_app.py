@@ -5,9 +5,7 @@ import numpy as np
 
 st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
 st.title("帕金森DBS神经动力学仿真可视化平台")
-st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
-
-
+st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV
 @st.cache_data
 def generate_dbs_data(freq, amp):
     t = np.linspace(0, 1000, 1000)
