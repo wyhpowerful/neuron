@@ -80,7 +80,7 @@ if df is not None:
         # 页面底部署名
 st.markdown("---")
 st.markdown(
-    "<div style='text-align: center; color: #2196F3; font-size: 14px;'>"
+    "<div style='text-align: center; color: #888888; font-size: 14px;'>"
     "豫北医学院 · Powered by 王一浩 牛璐鸣 李雨轩 指导教师：丰依凡"
     "</div>",
     unsafe_allow_html=True
