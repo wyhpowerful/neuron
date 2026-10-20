@@ -1,4 +1,6 @@
 streamlit
+numpy
+matplotlib
+scipy
 pandas
 plotly
-kaleido
