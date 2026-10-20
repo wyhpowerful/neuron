@@ -791,7 +791,6 @@ addBlock();addBlock(); render2048();
 </html>
     """
     html(game_html, height=780)
-
 # ---------------------- 底部署名 ----------------------
 st.markdown("---")
 st.markdown(
