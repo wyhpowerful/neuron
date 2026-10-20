@@ -39,17 +39,19 @@ st.markdown(bounce_html, unsafe_allow_html=True)
 st.title("帕金森DBS神经动力学仿真可视化平台")
 st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
 
-# 上传hungry_shark.mp3到仓库根目录后，换成 st.audio("hungry_shark.mp3", loop=True)
-st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", loop=True, format="audio/mpeg")
+# 音频：像梦一样自由.mp3，上传到仓库根目录
+st.audio("像梦一样自由.mp3", loop=True, format="audio/mpeg")
 
 
 @st.cache_data
-def generate_dbs_data(freq, amp):
-    t = np.linspace(0, 1000, 1000)
+def generate_dbs_data(freq, amp, pulse_width, stim_strength, total_time, sample_num):
+    t = np.linspace(0, total_time, sample_num)
     omega = 2 * np.pi * freq / 1000
-    stn = -55 + 12 * np.sin(omega * t) + amp * np.sin(2 * omega * t)
-    gpe = -60 + 8 * np.sin(omega * t + 0.6) + amp * 0.7 * np.sin(2 * omega * t)
-    gpi = -62 + 10 * np.sin(omega * t + 1.2) + amp * 0.8 * np.sin(2 * omega * t)
+    # 基础膜电位叠加DBS刺激脉冲调制
+    pulse_mod = np.where(np.mod(t, 1000/freq) < pulse_width, stim_strength, 0)
+    stn = -55 + 12 * np.sin(omega * t) + amp * np.sin(2 * omega * t) + pulse_mod*0.4
+    gpe = -60 + 8 * np.sin(omega * t + 0.6) + amp * 0.7 * np.sin(2 * omega * t) + pulse_mod*0.25
+    gpi = -62 + 10 * np.sin(omega * t + 1.2) + amp * 0.8 * np.sin(2 * omega * t) + pulse_mod*0.35
     df = pd.DataFrame({
         "time(ms)": t,
         "STN": stn,
@@ -57,7 +59,7 @@ def generate_dbs_data(freq, amp):
         "GPi": gpi
     })
     pulse_interval = 1000 / freq
-    pulse_times = np.arange(pulse_interval / 2, 1000, pulse_interval)
+    pulse_times = np.arange(pulse_interval / 2, total_time, pulse_interval)
     return df, pulse_times
 
 
@@ -69,10 +71,15 @@ title_text = "核团膜电位时序曲线"
 if mode == "内置仿真模型（可调DBS参数，直接演示）":
     st.sidebar.header("⚙️ DBS刺激参数调节")
     stim_freq = st.sidebar.slider("刺激频率 (Hz)", min_value=5, max_value=60, value=13, step=1)
-    stim_amp = st.sidebar.slider("刺激幅值 (mV)", min_value=0.0, max_value=8.0, value=3.0, step=0.5)
-    df, pulse_times = generate_dbs_data(stim_freq, stim_amp)
+    stim_amp = st.sidebar.slider("调制幅值 (mV)", min_value=0.0, max_value=8.0, value=3.0, step=0.5)
+    pulse_width = st.sidebar.slider("刺激脉宽 (ms)", min_value=0.1, max_value=2.0, value=0.4, step=0.1)
+    stim_strength = st.sidebar.slider("刺激强度", min_value=0.0, max_value=5.0, value=2.0, step=0.2)
+    total_time = st.sidebar.slider("仿真总时长 (ms)", min_value=200, max_value=2000, value=1000, step=100)
+    sample_num = st.sidebar.slider("采样点数", min_value=200, max_value=3000, value=1000, step=100)
+
+    df, pulse_times = generate_dbs_data(stim_freq, stim_amp, pulse_width, stim_strength, total_time, sample_num)
     title_text = f"核团膜电位时序曲线 | DBS频率：{stim_freq} Hz，幅值：{stim_amp} mV"
-    st.success(f"✅ 已生成DBS仿真 | 频率：{stim_freq} Hz，幅值：{stim_amp} mV")
+    st.success(f"✅ 已生成DBS仿真 | 频率：{stim_freq} Hz，幅值：{stim_amp} mV，脉宽：{pulse_width} ms")
 else:
     upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
     if upload_file is not None:
@@ -95,6 +102,26 @@ if df is not None:
         default=signal_cols
     )
 
+    # 波形缩放调节滑块
+    st.subheader("🎚️ 波形缩放调节滑块")
+    col1, col2 = st.columns(2)
+    with col1:
+        x_min, x_max = st.slider(
+            "⏱️ 时间范围（ms）",
+            min_value=float(df[time_col].min()),
+            max_value=float(df[time_col].max()),
+            value=(float(df[time_col].min()), float(df[time_col].max())),
+            step=1.0
+        )
+    with col2:
+        y_min, y_max = st.slider(
+            "⚡ 膜电位范围（mV）",
+            min_value=float(df[selected_cols].min().min()),
+            max_value=float(df[selected_cols].max().max()),
+            value=(float(df[selected_cols].min().min()), float(df[selected_cols].max().max())),
+            step=0.01
+        )
+
     if selected_cols:
         fig = px.line(
             df,
@@ -107,21 +134,22 @@ if df is not None:
             for pt in pulse_times:
                 fig.add_vline(x=pt, line_dash="dot", line_color="red", line_width=1.2)
 
-        fig.update_layout(height=620)
-        # ========== 重点配置：默认平移模式，双指捏放缩放，关闭框选放大 ==========
+        fig.update_layout(
+            height=620,
+            xaxis_range=[x_min, x_max],
+            yaxis_range=[y_min, y_max]
+        )
+        # 移除框选相关按钮，避免误触
         st.plotly_chart(
             fig,
             use_container_width=True,
             config={
                 'responsive': True,
                 'displayModeBar': True,
-                'scrollZoom': True,
-                'doubleClick': 'reset',
-                'dragmode': 'pan',
-                'modeBarButtonsToRemove': ['select2d', 'lasso2d']
+                'modeBarButtonsToRemove': ['select2d', 'lasso2d','zoom2d']
             }
         )
-        st.info("💡 操作提示：单指拖动平移波形，双指捏合/张开缩放（地图式伸缩）；双击图表恢复原图")
+        st.info("💡 操作提示：拖动上方滑块放大缩小波形区间，稳定无框选误触！")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
