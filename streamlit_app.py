@@ -108,7 +108,7 @@ if df is not None:
                 fig.add_vline(x=pt, line_dash="dot", line_color="red", line_width=1.2)
 
         fig.update_layout(height=620)
-        # ========== 重点：开启移动端触摸手势，支持双指缩放 ==========
+        # ========== 重点配置：默认平移模式，双指捏放缩放，关闭框选放大 ==========
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -117,10 +117,11 @@ if df is not None:
                 'displayModeBar': True,
                 'scrollZoom': True,
                 'doubleClick': 'reset',
-                'touchActions': 'pan zoom'
+                'dragmode': 'pan',
+                'modeBarButtonsToRemove': ['select2d', 'lasso2d']
             }
         )
-        st.info("💡 操作提示：手机上双指捏合放大缩小、拖动平移；双击图表恢复原图")
+        st.info("💡 操作提示：单指拖动平移波形，双指捏合/张开缩放（地图式伸缩）；双击图表恢复原图")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
