@@ -20,4 +20,3 @@ if upload_file is not None:
 
 else:
     st.info("⬆️ 请上传CSV格式仿真结果文件")
-    替换为DBS仿真可视化页面
