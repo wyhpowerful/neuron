@@ -39,7 +39,8 @@ st.markdown(bounce_html, unsafe_allow_html=True)
 st.title("帕金森DBS神经动力学仿真可视化平台")
 st.markdown("📌 两种使用模式：①内置仿真模型，可调DBS刺激参数；②上传自己导出的CSV仿真文件")
 
-st.audio("像梦一样自由.mp3", loop=True, format="audio/mpeg")
+# 上传hungry_shark.mp3到仓库根目录后，换成 st.audio("hungry_shark.mp3", loop=True)
+st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", loop=True, format="audio/mpeg")
 
 
 @st.cache_data
@@ -107,12 +108,23 @@ if df is not None:
                 fig.add_vline(x=pt, line_dash="dot", line_color="red", line_width=1.2)
 
         fig.update_layout(height=620)
-        st.plotly_chart(fig, use_container_width=True)
-        st.info("💡 保存图片：点击图表右上角相机图标直接截图保存")
+        # ========== 重点：开启移动端触摸手势，支持双指缩放 ==========
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={
+                'responsive': True,
+                'displayModeBar': True,
+                'scrollZoom': True,
+                'doubleClick': 'reset',
+                'touchActions': 'pan zoom'
+            }
+        )
+        st.info("💡 操作提示：手机上双指捏合放大缩小、拖动平移；双击图表恢复原图")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
-# ========== 修改后的底部署名 ==========
+# ========== 底部署名 ==========
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666666; font-size: 15px; line-height:1.6;'>"
