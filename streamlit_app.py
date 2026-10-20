@@ -77,3 +77,11 @@ if df is not None:
         st.info("💡 保存图片：点击图表右上角相机图标直接截图保存")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
+        # 页面底部署名
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #888888; font-size: 14px;'>"
+    "豫北医学院 · Powered by WYH"
+    "</div>",
+    unsafe_allow_html=True
+)
