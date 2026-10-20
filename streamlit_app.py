@@ -263,7 +263,7 @@ if mode == "基底节环路网络仿真":
 
             plot_raster(axes[2,0], t_pddbs, res_pddbs["spike"], title="PD+DBS刺激 放电栅格图")
             plot_lfp(axes[2,1], t_pddbs, res_pddbs["lfp"], title="PD+DBS刺激 LFP")
-            plot_stft(axes[2,2], t_pddbs, res_pddbs["lfp"], res_pddbs["lfp"], fs=fs, title="PD+DBS刺激 时频图")
+            plot_stft(axes[2,2], t_pddbs["lfp"], fs=fs, title="PD+DBS刺激 时频图")
             plt.tight_layout()
             st.pyplot(fig)
             st.success("✅仿真完成！上图为：放电栅格、LFP局部场电位、时频分析")
