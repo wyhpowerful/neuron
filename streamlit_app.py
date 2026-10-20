@@ -603,10 +603,10 @@ body{margin:0;padding:5px}
 <div class="modal-mask" id="modal">
     <div class="modal-box">
         <h4>赞赏支持</h4>
-        <p>微信号：<span id="wxid">MyWeChat001</span></p>
-        <button class="copy-btn" onclick="copyWx()">复制微信号</button>
+        <p>微信号：<span id="wxid">wp19903818366</span></p>
+        <button class="copy-btn" onclick="copyWx()">wp19903818366</button>
         <br>
-        <img class="qrcode-img" src="这里放你的二维码图片链接" alt="微信赞赏码">
+        <img class="qrcode-img" src="https://ibb.co/Zp4qW2ZD" alt="微信赞赏码">
         <p>截图二维码，打开微信扫一扫即可打赏</p>
         <button class="close-btn" onclick="closeModal()">关闭</button>
     </div>
