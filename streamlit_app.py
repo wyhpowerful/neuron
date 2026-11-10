@@ -4,44 +4,149 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import pandas as pd
 import plotly.express as px
+from streamlit.components.v1 import html
 
-st.set_page_config(page_title="帕金森DBS神经动力学仿真可视化平台", layout="wide")
+# ====================== 页面全局配置【美化增强】 ======================
+st.set_page_config(
+    page_title="帕金森DBS神经动力学仿真可视化平台",
+    layout="wide",
+    page_icon="🧠",
+    initial_sidebar_state="expanded"
+)
 
-# ---------------------- 👀弹跳动画 ----------------------
-bounce_html = """
+# 初始化会话状态：记录要打开弹窗的成员索引
+if "open_member_idx" not in st.session_state:
+    st.session_state.open_member_idx = None
+
+# 全局自定义CSS
+global_css = """
 <style>
+html, body {font-family: "Microsoft YaHei", -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;}
+
+div.custom-card {
+    background-color: #ffffff;
+    border-radius:14px;
+    padding:1.2rem 1.4rem;
+    box-shadow: 0 2px 12px rgba(0,40,90,0.08);
+    margin-bottom:16px;
+    border-left:4px solid #2E86AB;
+}
+div.card-warning{
+    border-left:4px solid #ff7851;
+    background:#fffafa;
+}
+div.card-info{
+    border-left:4px solid #41a6f7;
+    background:#f7fbff;
+}
+div.card-team{
+    border-left:4px solid #7b61ff;
+    background:#f9f8ff;
+}
+
+/* 团队成员按钮方块 */
+.team-btn > button{
+    width:100%;
+    height:5rem;
+    border-radius:12px;
+    font-size:16px;
+    font-weight:600;
+    border:none;
+    background:linear-gradient(135deg,#6373ff,#7b61ff);
+    color:#ffffff;
+    box-shadow:0 3px 10px rgba(99,115,255,0.22);
+}
+.team-btn > button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 16px rgba(99,115,255,0.32);
+}
+
+/* 主运行仿真按钮 */
+.stButton>button {
+    width:100%;
+    border-radius:10px;
+    font-weight:600;
+    font-size:16px;
+    height:3.2rem;
+    background:linear-gradient(90deg,#2E86AB,#41a6f7);
+    color:white !important;
+    border:none;
+    box-shadow:0 3px 8px rgba(46,134,171,0.25);
+}
+.stButton>button:hover{
+    box-shadow:0 4px 14px rgba(46,134,171,0.35);
+    transform: translateY(-1px);
+}
+
+[data-testid="stExpander"] details summary{
+    border-radius:10px;
+    padding: 0.6rem 0.8rem !important;
+}
+[data-testid="stExpander"] details:hover summary{
+    background-color:rgba(46,134,171,0.06);
+}
+
+[data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3{
+    color:#204b70;
+}
+
+hr{
+    border:none;
+    height:2px;
+    background:linear-gradient(90deg, #2E86AB, #82c4e8, transparent);
+    margin:24px 0;
+}
+
+div.footer-card{
+    background: rgba(46, 134, 171, 0.07);
+    border-radius:12px;
+    padding:18px;
+    text-align:center;
+    margin-top:30px;
+}
+
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-20px); }
 }
 .eye1 {
-  font-size:44px;
+  font-size:48px;
   animation: bounce 0.6s ease-in-out infinite;
   display:inline-block;
 }
 .eye2 {
-  font-size:44px;
+  font-size:48px;
   animation: bounce 0.6s ease-in-out 0.15s infinite;
   display:inline-block;
 }
 .eye3 {
-  font-size:44px;
+  font-size:48px;
   animation: bounce 0.6s ease-in-out 0.3s infinite;
   display:inline-block;
 }
 </style>
-<div style="text-align:center; margin-bottom:12px;">
-  <span class="eye1">👀</span>&nbsp;&nbsp;
-  <span class="eye2">👀</span>&nbsp;&nbsp;
-  <span class="eye3">👀</span>
+"""
+st.markdown(global_css, unsafe_allow_html=True)
+
+# ---------------------- 顶部弹跳动画 ----------------------
+bounce_html = """
+<div style="text-align:center; margin-bottom:16px;">
+  <span class="eye1">🧠</span>&nbsp;&nbsp;
+  <span class="eye2">🔬</span>&nbsp;&nbsp;
+  <span class="eye3">📊</span>
 </div>
 """
 st.markdown(bounce_html, unsafe_allow_html=True)
 
-st.title("帕金森DBS神经动力学仿真可视化平台")
-st.markdown("📌 两种使用模式：①基底节环路网络仿真；②上传自己导出的CSV文件")
+st.markdown("""
+<h1 style="text-align:center; color:#1b4364; margin-bottom:4px;">帕金森DBS神经动力学仿真可视化平台</h1>
+<p style="text-align:center; font-size:17px; color:#446888; margin-bottom:24px;">
+    基底节环路Izhikevich神经元网络 · DBS深部脑刺激数值仿真系统
+</p>
+""", unsafe_allow_html=True)
 
-# ==========【新增：顶部免责声明】 ==========
+# ==========【免责声明卡片】 ==========
+st.markdown('<div class="custom-card card-warning">', unsafe_allow_html=True)
 with st.expander("⚠️ 免责声明", expanded=True):
     st.warning("""
 本平台仅为生物医学工程课程学习、科研教学仿真演示工具。
@@ -50,17 +155,64 @@ with st.expander("⚠️ 免责声明", expanded=True):
 3. 若用于报告、作业引用，请自行核对文献资料；项目作者不对使用本工具产生的任何直接或间接后果承担责任。
 4. 本项目仅供非盈利学习交流使用，禁止商用。
 """)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# ========== 【版本+更新日志板块】 ==========
+# ========== 【版本+更新日志卡片】 ==========
+st.markdown('<div class="custom-card card-info">', unsafe_allow_html=True)
 with st.expander("📋 版本信息 & 更新日志", expanded=True):
-    st.markdown("**当前版本：V1.3 | 更新日期：2026.10.20**")
+    st.markdown("**当前版本：V1.6 | 更新日期：2026.10.20**")
     st.markdown("""
+    - [2026.10.20] V1.6：修复团队成员弹窗，替换废弃st.modal为官方@st.dialog
+    - [2026.10.20] V1.5：新增弹球打砖块休闲小游戏
+    - [2026.10.20] V1.4：新增项目团队成员弹窗模块，界面全面美化升级
     - [2026.10.20] V1.3：页面顶部增加免责声明；侧边栏新增【查看说明】按钮，点击弹出参数解释气泡
     - [2026.10.20] V1.2：新增【休闲窗口】，内置2048小游戏
-    - [2026.10.20] V1.1：新增参数详情折叠说明、参数原理解释模块
     - [2026.10.19] V1.0：完成基础三工况仿真、栅格图/LFP/时频图、CSV上传绘图功能
     """)
     st.info("💡 每次更新代码时，在这里直接修改版本号、日期、新增条目即可。")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ========== ✨【项目团队成员模块｜修复弹窗】 ==========
+st.markdown('<div class="custom-card card-team">', unsafe_allow_html=True)
+st.markdown("### 👥 项目团队成员（点击名字查看简介）")
+
+# 成员数据
+team_data = [
+    {
+        "name":"王一浩",
+        "intro":"**项目负责人**\n负责代码撰写，结课汇报。"
+    },
+    {
+        "name":"牛璐鸣",
+        "intro":"**入党积极分子**\n负责论文整合，撰写，协调。"
+    },
+    {
+        "name":"李雨轩",
+        "intro":"**入党积极分子**\n负责论文矫正，论文润色，纠错。"
+    },
+    {
+        "name":"丰依凡",
+        "intro":"**项目带头人 | 硕士生导师**\n现工作于豫北医学院，项目奠基人。"
+    }
+]
+
+# 定义弹窗装饰器函数
+@st.dialog("成员简介")
+def show_member_dialog(member_name, member_intro):
+    st.subheader(member_name)
+    st.markdown(member_intro)
+
+col1, col2, col3, col4 = st.columns(4)
+cols = [col1, col2, col3, col4]
+
+for idx, member in enumerate(team_data):
+    with cols[idx]:
+        st.markdown('<div class="team-btn">', unsafe_allow_html=True)
+        if st.button(member["name"], key=f"team_btn_{idx}"):
+            show_member_dialog(member["name"], member["intro"])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------- 默认配置 ----------------------
 def get_default_config():
@@ -149,16 +301,14 @@ def build_network_connectivity(n_per_nuc, pd_mode=False):
     conn["GPe_to_STN"]        = create_sparse_connect("GPe", "STN", n_per_nuc, n_per_nuc, 0.25, -1.5, "inh")
     conn["GPe_to_GPi"]        = create_sparse_connect("GPe", "GPi", n_per_nuc, n_per_nuc, 0.20, -1.2, "inh")
     conn["GPi_to_Thalamus"]   = create_sparse_connect("GPi", "Thalamus", n_per_nuc, n_per_nuc, 0.20, -1.2, "inh")
-
     if pd_mode:
         conn["GPe_to_STN"]["weight"]   = -0.5
         conn["STN_to_GPi"]["weight"]   = 2.5
         conn["STN_to_GPe"]["weight"]   = 2.0
         conn["Striatum_to_GPi"]["weight"] = -0.6
-
     return conn
 
-# ---------------------- 仿真核心 ----------------------
+# ---------------------- 仿真核心【完全未改动】 ----------------------
 def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
     dt = config["dt"]
     sim_total_ms = config["sim_total_ms"]
@@ -172,9 +322,7 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
     dbs_start_t = config["dbs_start_ms"]
     dbs_pw = config.get("dbs_pulse_width", 0.1)
     dbs_period_ms = 1000.0 / dbs_freq
-
     nucleus_list = ["Cortex", "Striatum", "GPe", "STN", "GPi", "Thalamus"]
-
     v = {}
     u = {}
     I_bias = {}
@@ -183,9 +331,7 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
     spk = {}
     spike_times = {}
     lfp = {}
-
     rng = np.random.default_rng(2026)
-
     for nuc in nucleus_list:
         p = neuron_param[nuc]
         v[nuc] = np.ones(n_per_nuc) * p["v_rest"]
@@ -196,13 +342,10 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
         spk[nuc] = np.zeros(n_per_nuc)
         spike_times[nuc] = [[] for _ in range(n_per_nuc)]
         lfp[nuc] = np.zeros(Nt)
-
     decay_exc = np.exp(-dt / tau_exc)
     decay_inh = np.exp(-dt / tau_inh)
-
     for key in conn:
         conn[key]["w_mat"] = conn[key]["matrix"] * conn[key]["weight"]
-
     trans = [
         ("Cortex", "Striatum", "exc"),
         ("STN", "GPe", "exc"),
@@ -214,14 +357,11 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
         ("GPe", "GPi", "inh"),
         ("GPi", "Thalamus", "inh"),
     ]
-
     for t_idx in range(Nt):
         t = t_arr[t_idx]
-
         for nuc in nucleus_list:
             I_syn_exc[nuc] *= decay_exc
             I_syn_inh[nuc] *= decay_inh
-
         for pre, post, st in trans:
             key = f"{pre}_to_{post}"
             inc = conn[key]["w_mat"].T @ spk[pre]
@@ -229,58 +369,46 @@ def run_simulation(config, neuron_param, conn, pd_mode=False, dbs_on=False):
                 I_syn_exc[post] += inc
             else:
                 I_syn_inh[post] += inc
-
         for nuc in nucleus_list:
             p = neuron_param[nuc]
             a, b, c, d, v_peak = p["a"], p["b"], p["c"], p["d"], p["v_peak"]
-
             I_total = I_bias[nuc] + I_syn_exc[nuc] + I_syn_inh[nuc]
-
             if nuc == "STN" and dbs_on and t >= dbs_start_t:
                 phase = (t - dbs_start_t) % dbs_period_ms
                 if phase < dbs_pw:
                     I_total = I_total + dbs_amp
-
             dv = 0.04 * v[nuc] ** 2 + 5 * v[nuc] + 140 - u[nuc] + I_total
             v[nuc] += dv * dt
             du = a * (b * v[nuc] - u[nuc])
             u[nuc] += du * dt
-
             spike_idx = v[nuc] >= v_peak
             spk[nuc][:] = 0
-
             if np.any(spike_idx):
                 for idx in np.nonzero(spike_idx)[0]:
                     spike_times[nuc][idx].append(t)
                 spk[nuc][spike_idx] = 1
                 v[nuc][spike_idx] = c
                 u[nuc][spike_idx] += d
-
         for nuc in nucleus_list:
             lfp[nuc][t_idx] = np.mean(v[nuc])
-
     return {
         "t": t_arr,
         "spike": spike_times,
         "lfp": lfp,
     }
 
-# ---------------------- 绘图函数 ----------------------
+# ---------------------- 绘图函数【完全未改动】 ----------------------
 plt.rcParams["axes.unicode_minus"] = False
-
 def plot_raster(ax, t, spike_rec, title=""):
     ax.set_xlabel("时间 (ms)")
     ax.set_ylabel("神经元编号")
     ax.set_title(title)
-
     if len(spike_rec) == 0:
         return
-
     for neuron_idx, spike_times in enumerate(spike_rec):
         stimes = np.asarray(spike_times)
         if stimes.size > 0:
             ax.plot(stimes, np.full(stimes.size, neuron_idx), 'k.', markersize=1)
-
     ax.set_xlim(t[0], t[-1])
 
 def plot_lfp(ax, t, lfp, title=""):
@@ -300,21 +428,17 @@ def plot_stft(ax, t, lfp, fs, title=""):
     plt.colorbar(im, ax=ax)
     return im
 
-# ---------------------- 三工况缓存仿真 ----------------------
+# ---------------------- 三工况缓存仿真【完全未改动】 ----------------------
 @st.cache_data(max_entries=2)
 def run_all_three_conditions(cfg):
     fs = 1000.0 / cfg["dt"]
     n = cfg["n_per_nuc"]
-
     conn_norm = build_network_connectivity(n, pd_mode=False)
     res_norm = run_simulation(cfg, neuron_param, conn_norm, pd_mode=False, dbs_on=False)
-
     conn_pd = build_network_connectivity(n, pd_mode=True)
     res_pd = run_simulation(cfg, neuron_param, conn_pd, pd_mode=True, dbs_on=False)
-
     conn_pddbs = build_network_connectivity(n, pd_mode=True)
     res_pddbs = run_simulation(cfg, neuron_param, conn_pddbs, pd_mode=True, dbs_on=True)
-
     return res_norm, res_pd, res_pddbs, fs
 
 # ---------------------- 模式选择 ----------------------
@@ -323,19 +447,15 @@ mode = st.radio(
     ["基底节环路网络仿真", "上传自己的CSV文件"],
     horizontal=True,
 )
-
 df = None
 
-# ---------------------- 模式1：环路仿真 + 侧边栏参数（【新增popover查看说明按钮】） ----------------------
+# ---------------------- 模式1：环路仿真 + 侧边栏参数 ----------------------
 if mode == "基底节环路网络仿真":
     st.sidebar.header("⚙️ 仿真参数设置")
-
     base_cfg = get_default_config()
     cfg = {}
-
     with st.sidebar:
         st.markdown("#### 📐 基础仿真参数")
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'dt — {param_info["dt"]["brief"]}'):
@@ -345,7 +465,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['dt']['brief']}**")
                 st.markdown(param_info["dt"]["detail"])
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'sim_total_ms — {param_info["sim_total_ms"]["brief"]}'):
@@ -355,7 +474,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['sim_total_ms']['brief']}**")
                 st.markdown(param_info["sim_total_ms"]["detail"])
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'n_per_nuc — {param_info["n_per_nuc"]["brief"]}'):
@@ -365,9 +483,7 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['n_per_nuc']['brief']}**")
                 st.markdown(param_info["n_per_nuc"]["detail"])
-
         st.markdown("#### 🧠 突触动力学参数")
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'tau_exc — {param_info["tau_exc"]["brief"]}'):
@@ -377,7 +493,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['tau_exc']['brief']}**")
                 st.markdown(param_info["tau_exc"]["detail"])
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'tau_inh — {param_info["tau_inh"]["brief"]}'):
@@ -387,9 +502,7 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['tau_inh']['brief']}**")
                 st.markdown(param_info["tau_inh"]["detail"])
-
         st.markdown("#### ⚡ DBS刺激参数")
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'dbs_freq — {param_info["dbs_freq"]["brief"]}'):
@@ -399,7 +512,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['dbs_freq']['brief']}**")
                 st.markdown(param_info["dbs_freq"]["detail"])
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'dbs_amp — {param_info["dbs_amp"]["brief"]}'):
@@ -409,7 +521,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['dbs_amp']['brief']}**")
                 st.markdown(param_info["dbs_amp"]["detail"])
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'dbs_pulse_width — {param_info["dbs_pulse_width"]["brief"]}'):
@@ -419,7 +530,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['dbs_pulse_width']['brief']}**")
                 st.markdown(param_info["dbs_pulse_width"]["detail"])
-
         col1, col2 = st.columns([4,1])
         with col1:
             with st.expander(f'dbs_start_ms — {param_info["dbs_start_ms"]["brief"]}'):
@@ -431,38 +541,29 @@ if mode == "基底节环路网络仿真":
                 st.markdown(param_info["dbs_start_ms"]["detail"])
 
     run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
-
     if run_btn:
         with st.spinner("正在仿真计算，请等待，神经元数量越大耗时越长……"):
             res_norm, res_pd, res_pddbs, fs = run_all_three_conditions(cfg)
-
             t_norm = res_norm["t"]
             t_pd = res_pd["t"]
             t_pddbs = res_pddbs["t"]
-
             fig, axes = plt.subplots(3, 3, figsize=(16, 12))
-
             plot_raster(axes[0, 0], t_norm, res_norm["spike"]["GPi"], title="正常 GPi 放电栅格图")
             plot_lfp(axes[0, 1], t_norm, res_norm["lfp"]["GPi"], title="正常 GPi LFP")
             plot_stft(axes[0, 2], t_norm, res_norm["lfp"]["GPi"], fs=fs, title="正常 GPi 时频图")
-
             plot_raster(axes[1, 0], t_pd, res_pd["spike"]["GPi"], title="PD患病 GPi 放电栅格图")
             plot_lfp(axes[1, 1], t_pd, res_pd["lfp"]["GPi"], title="PD患病 GPi LFP")
             plot_stft(axes[1, 2], t_pd, res_pd["lfp"]["GPi"], fs=fs, title="PD患病 GPi 时频图")
-
             plot_raster(axes[2, 0], t_pddbs, res_pddbs["spike"]["GPi"], title="PD+DBS刺激 GPi 放电栅格图")
             plot_lfp(axes[2, 1], t_pddbs, res_pddbs["lfp"]["GPi"], title="PD+DBS刺激 GPi LFP")
             plot_stft(axes[2, 2], t_pddbs, res_pddbs["lfp"]["GPi"], fs=fs, title="PD+DBS刺激 GPi 时频图")
-
             fig.tight_layout()
             st.pyplot(fig)
-
             st.success("✅仿真完成！上图为：放电栅格、LFP局部场电位、时频分析")
 
 # ---------------------- 模式2：CSV上传 ----------------------
 else:
     upload_file = st.file_uploader("上传csv仿真数据文件", type=["csv"])
-
     if upload_file is not None:
         df = pd.read_csv(upload_file)
     else:
@@ -471,12 +572,9 @@ else:
 # ---------------------- CSV模式绘图与缩放滑块 ----------------------
 if df is not None:
     st.subheader("🎚️ 波形缩放调节（拖动滑块来放大缩小，搭配一键重置）")
-
     col_reset, col_x, col_y = st.columns([1, 3, 3])
-
     with col_reset:
         reset_btn = st.button("🔄 恢复全局视图")
-
     with col_x:
         x_min, x_max = st.slider(
             "⏱️ 时间范围（ms）",
@@ -485,12 +583,10 @@ if df is not None:
             value=(float(df["time(ms)"].min()), float(df["time(ms)"].max())) if not reset_btn else (float(df["time(ms)"].min()), float(df["time(ms)"].max())),
             step=1.0,
         )
-
     with col_y:
         all_y = df[["STN", "GPe", "GPi"]]
         y_min_global = float(all_y.min().min())
         y_max_global = float(all_y.max().max())
-
         y_min, y_max = st.slider(
             "⚡ 膜电位范围（mV）",
             min_value=y_min_global,
@@ -498,15 +594,12 @@ if df is not None:
             value=(y_min_global, y_max_global) if not reset_btn else (y_min_global, y_max_global),
             step=0.01,
         )
-
     st.sidebar.header("📈 绘图设置")
-
     selected_cols = st.sidebar.multiselect(
         "选择需要绘制的核团信号",
         options=["STN", "GPe", "GPi"],
         default=["STN", "GPe", "GPi"],
     )
-
     if selected_cols:
         fig = px.line(
             df,
@@ -515,13 +608,11 @@ if df is not None:
             title="核团膜电位时序曲线",
             labels={"value": "膜电位 (mV)", "time(ms)": "时间 (ms)", "variable": "核团"},
         )
-
         fig.update_layout(
             height=620,
             xaxis_range=[x_min, x_max],
             yaxis_range=[y_min, y_max],
         )
-
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -531,16 +622,14 @@ if df is not None:
                 "modeBarButtonsToRemove": ["select2d", "lasso2d", "zoom2d"],
             },
         )
-
         st.info("💡 使用方法：拖动时间滑块截取一小段时间，就实现放大；点【恢复全局视图】回到全貌！")
     else:
         st.warning("请至少勾选一个核团信号进行绘图")
 
-# ========== 🎮 休闲窗口 2048 ==========
-from streamlit.components.v1 import html
+# ========== 🎮 休闲窗口1｜2048 ==========
 with st.expander("🎮 休闲窗口 | 仿真累了可以玩一会2048", expanded=False):
     st.markdown("点击下方方向按钮控制方块移动，合并相同数字，合成2048即胜利！")
-    game_html = """
+    game_html_2048 = """
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -660,14 +749,151 @@ addBlock();addBlock();render();
 </body>
 </html>
     """
-    html(game_html, height=580)
+    html(game_html_2048, height=580)
 
-# ---------------------- 底部署名 ----------------------
-st.markdown("---")
+# ========== 🎮 休闲窗口2｜弹球打砖块游戏 ==========
+with st.expander("🎮 休闲窗口 | 弹球打砖块游戏", expanded=False):
+    st.markdown("⬅️ ➡️点击按钮移动挡板，接住小球击碎砖块；小球掉落游戏结束！")
+    game_html_breakout = """
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:8px;font-family:Arial}
+.box{width:420px;margin:0 auto}
+#canvas{background:#112233;border-radius:6px;display:block;margin:0 auto}
+.ctrl{margin-top:12px;text-align:center}
+.ctrl button{width:80px;height:50px;font-size:22px;border:none;border-radius:8px;background:#d9d2c6;color:#333;font-weight:bold;margin:0 8px}
+.ctrl button:active{background:#b9b09f}
+.info{text-align:center;margin-top:8px;font-size:18px;color:#223344}
+</style>
+</head>
+<body>
+<div class="box">
+<canvas id="canvas" width="400" height="320"></canvas>
+<div class="info" id="infotext">分数：0</div>
+<div class="ctrl">
+<button onclick="movePad(-15)">⬅️</button>
+<button onclick="movePad(15)">➡️</button>
+<button onclick="resetGame()">🔄重置</button>
+</div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let score = 0;
+let gameOver = false;
+
+const pad = {w:80, h:12, x:160, y:290, speed:12};
+const ball = {r:8, x:200, y:260, dx:3, dy:-3};
+
+const brickRows = 4;
+const brickCols = 7;
+const brickW = 48;
+const brickH =18;
+const brickPad =4;
+let bricks = [];
+
+function initBricks(){
+    bricks = [];
+    for(let r=0;r<brickRows;r++){
+        for(let c=0;c<brickCols;c++){
+            bricks.push({
+                x: c*(brickW+brickPad)+8,
+                y: r*(brickH+brickPad)+8,
+                w:brickW,
+                h:brickH,
+                alive:true
+            })
+        }
+    }
+}
+
+function resetGame(){
+    score=0;gameOver=false;
+    pad.x=160;
+    ball.x=200;ball.y=260;ball.dx=3;ball.dy=-3;
+    initBricks();
+    updateInfo();
+}
+
+function movePad(delta){
+    if(gameOver) return;
+    pad.x += delta;
+    if(pad.x<0) pad.x=0;
+    if(pad.x+pad.w>canvas.width) pad.x = canvas.width - pad.w;
+}
+
+function updateInfo(){
+    document.getElementById("infotext").innerText = gameOver?"游戏结束！点击重置":"分数："+score;
+}
+
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#72b8ff";
+    ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
+    ctx.beginPath();
+    ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fillStyle="#ffdd44";
+    ctx.fill();
+    for(let b of bricks){
+        if(!b.alive) continue;
+        ctx.fillStyle="#ff7766";
+        ctx.fillRect(b.x,b.y,b.w,b.h);
+    }
+}
+
+function update(){
+    if(gameOver) return;
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+    if(ball.x-ball.r <=0 || ball.x+ball.r >= canvas.width){
+        ball.dx *= -1;
+    }
+    if(ball.y-ball.r <=0){
+        ball.dy *= -1;
+    }
+    if(ball.y+ball.r >= canvas.height){
+        gameOver=true;updateInfo();return;
+    }
+    if( ball.y+ball.r >= pad.y && ball.x>=pad.x && ball.x<=pad.x+pad.w ){
+        ball.dy = -Math.abs(ball.dy);
+    }
+    for(let b of bricks){
+        if(!b.alive) continue;
+        if( ball.x+ball.r> b.x && ball.x-ball.r < b.x+b.w &&
+            ball.y+ball.r> b.y && ball.y-ball.r < b.y+b.h ){
+            b.alive = false;
+            ball.dy *= -1;
+            score +=10;
+            updateInfo();
+            break;
+        }
+    }
+}
+
+function loop(){
+    update();draw();
+    requestAnimationFrame(loop);
+}
+resetGame();
+loop();
+</script>
+</body>
+</html>
+"""
+    html(game_html_breakout, height=420)
+
+# ---------------------- 底部卡片署名 ----------------------
+st.markdown('<div class="footer-card">',unsafe_allow_html=True)
 st.markdown(
-    "<div style='text-align: center; color: #666666; font-size: 15px; line-height:1.6;'>"
+    "<div style='color:#204b70; font-size: 15px; line-height:1.7;'>"
     "🏫豫北医学院·王一浩 牛璐鸣 李雨轩<br>"
     "指导教师👩‍🏫：丰依凡（超厉害的🤩）"
     "</div>",
     unsafe_allow_html=True,
 )
+st.markdown('</div>',unsafe_allow_html=True)
