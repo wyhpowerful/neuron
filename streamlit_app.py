@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 from streamlit.components.v1 import html
 
-# ====================== 页面全局配置【美化增强】 ======================
+# ====================== 页面全局配置｜Apple极简风格 ======================
 st.set_page_config(
     page_title="帕金森DBS神经动力学仿真可视化平台",
     layout="wide",
@@ -14,139 +14,134 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 初始化会话状态：记录要打开弹窗的成员索引
-if "open_member_idx" not in st.session_state:
-    st.session_state.open_member_idx = None
-
-# 全局自定义CSS
+# Apple风格全局CSS：去掉粗分割线、去掉左侧彩色竖条，大留白，柔和阴影，圆角，hover悬浮
 global_css = """
 <style>
-html, body {font-family: "Microsoft YaHei", -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;}
-
-div.custom-card {
-    background-color: #ffffff;
-    border-radius:14px;
-    padding:1.2rem 1.4rem;
-    box-shadow: 0 2px 12px rgba(0,40,90,0.08);
-    margin-bottom:16px;
-    border-left:4px solid #2E86AB;
-}
-div.card-warning{
-    border-left:4px solid #ff7851;
-    background:#fffafa;
-}
-div.card-info{
-    border-left:4px solid #41a6f7;
-    background:#f7fbff;
-}
-div.card-team{
-    border-left:4px solid #7b61ff;
-    background:#f9f8ff;
+/* 全局基础字体 Apple San‑Francisco 模拟 */
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color:#ffffff;
+    color:#1d1d1f;
 }
 
-/* 团队成员按钮方块 */
-.team-btn > button{
-    width:100%;
-    height:5rem;
-    border-radius:12px;
-    font-size:16px;
-    font-weight:600;
+/* 主卡片：Apple 悬浮卡片，无左侧色条，柔和浅阴影，大圆角 */
+div.app-card {
+    background-color:#ffffff;
+    border-radius:18px;
+    padding:1.8rem 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    margin-bottom:24px;
     border:none;
-    background:linear-gradient(135deg,#6373ff,#7b61ff);
-    color:#ffffff;
-    box-shadow:0 3px 10px rgba(99,115,255,0.22);
+    transition: all 0.25s ease;
 }
-.team-btn > button:hover{
-    transform:translateY(-2px);
-    box-shadow:0 6px 16px rgba(99,115,255,0.32);
+div.app-card:hover{
+    box-shadow: 0 6px 28px rgba(0,0,0,0.09);
 }
 
-/* 主运行仿真按钮 */
+/* 团队成员按钮 苹果质感渐变按钮 */
+.app-team-btn > button{
+    width:100%;
+    height:5.2rem;
+    border-radius:16px;
+    font-size:17px;
+    font-weight:500;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: linear-gradient(135deg,#f5f5f7,#e8e8ed);
+    color:#1d1d1f;
+    box-shadow:0 2px 10px rgba(0,0,0,0.04);
+    transition: all 0.22s ease;
+}
+.app-team-btn > button:hover{
+    transform: translateY(-3px);
+    box-shadow:0 8px 22px rgba(0,0,0,0.08);
+    background: linear-gradient(135deg,#ffffff,#f2f2f7);
+}
+
+/* 主运行仿真按钮 Apple蓝色风格 */
 .stButton>button {
     width:100%;
-    border-radius:10px;
-    font-weight:600;
+    border-radius:14px;
+    font-weight:500;
     font-size:16px;
-    height:3.2rem;
-    background:linear-gradient(90deg,#2E86AB,#41a6f7);
-    color:white !important;
+    height:3.4rem;
+    background:#007aff;
+    color:#ffffff !important;
     border:none;
-    box-shadow:0 3px 8px rgba(46,134,171,0.25);
+    box-shadow:0 3px 12px rgba(0,122,255,0.18);
+    transition: all 0.22s ease;
 }
 .stButton>button:hover{
-    box-shadow:0 4px 14px rgba(46,134,171,0.35);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow:0 6px 18px rgba(0,122,255,0.25);
+    background:#0084ff;
 }
 
+/* expander折叠面板美化 */
 [data-testid="stExpander"] details summary{
-    border-radius:10px;
-    padding: 0.6rem 0.8rem !important;
+    border-radius:14px;
+    padding: 0.8rem 1rem !important;
+    background-color:#f5f5f7;
+    transition:0.2s;
 }
 [data-testid="stExpander"] details:hover summary{
-    background-color:rgba(46,134,171,0.06);
+    background-color:#e9e9ef;
 }
 
+/* 侧边栏美化 */
+[data-testid="stSidebar"]{
+    background-color:#fafafc;
+}
 [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3{
-    color:#204b70;
+    color:#1d1d1f;
+    font-weight:500;
 }
 
+/* 彻底把原生hr分割线全部隐藏，不再显示横杠 */
 hr{
-    border:none;
-    height:2px;
-    background:linear-gradient(90deg, #2E86AB, #82c4e8, transparent);
-    margin:24px 0;
+    display:none !important;
 }
 
-div.footer-card{
-    background: rgba(46, 134, 171, 0.07);
-    border-radius:12px;
-    padding:18px;
+/* 页脚卡片，苹果浅灰底色 */
+div.app-footer{
+    background-color:#f5f5f7;
+    border-radius:18px;
+    padding:22px;
     text-align:center;
-    margin-top:30px;
+    margin-top:40px;
 }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+/* 标题层级样式 */
+.app-h1{
+    font-size:36px;
+    font-weight:600;
+    color:#1d1d1f;
+    text-align:center;
+    margin:12px 0 6px 0;
 }
-.eye1 {
-  font-size:48px;
-  animation: bounce 0.6s ease-in-out infinite;
-  display:inline-block;
+.app-subtitle{
+    font-size:18px;
+    color:#6e6e73;
+    text-align:center;
+    margin-bottom:32px;
 }
-.eye2 {
-  font-size:48px;
-  animation: bounce 0.6s ease-in-out 0.15s infinite;
-  display:inline-block;
-}
-.eye3 {
-  font-size:48px;
-  animation: bounce 0.6s ease-in-out 0.3s infinite;
-  display:inline-block;
+.app-section-title{
+    font-size:22px;
+    font-weight:500;
+    color:#1d1d1f;
+    margin-bottom:16px;
 }
 </style>
 """
 st.markdown(global_css, unsafe_allow_html=True)
 
-# ---------------------- 顶部弹跳动画 ----------------------
-bounce_html = """
-<div style="text-align:center; margin-bottom:16px;">
-  <span class="eye1">🧠</span>&nbsp;&nbsp;
-  <span class="eye2">🔬</span>&nbsp;&nbsp;
-  <span class="eye3">📊</span>
-</div>
-"""
-st.markdown(bounce_html, unsafe_allow_html=True)
-
+# ========== 页面大标题｜Apple极简，删除花哨弹跳动画 ==========
 st.markdown("""
-<h1 style="text-align:center; color:#1b4364; margin-bottom:4px;">帕金森DBS神经动力学仿真可视化平台</h1>
-<p style="text-align:center; font-size:17px; color:#446888; margin-bottom:24px;">
-    基底节环路Izhikevich神经元网络 · DBS深部脑刺激数值仿真系统
-</p>
+<div class="app-h1">帕金森DBS神经动力学仿真可视化平台</div>
+<div class="app-subtitle">基底节环路Izhikevich神经元网络 · DBS深部脑刺激数值仿真系统</div>
 """, unsafe_allow_html=True)
 
 # ==========【免责声明卡片】 ==========
-st.markdown('<div class="custom-card card-warning">', unsafe_allow_html=True)
+st.markdown('<div class="app-card">', unsafe_allow_html=True)
 with st.expander("⚠️ 免责声明", expanded=True):
     st.warning("""
 本平台仅为生物医学工程课程学习、科研教学仿真演示工具。
@@ -158,25 +153,25 @@ with st.expander("⚠️ 免责声明", expanded=True):
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ========== 【版本+更新日志卡片】 ==========
-st.markdown('<div class="custom-card card-info">', unsafe_allow_html=True)
+st.markdown('<div class="app-card">', unsafe_allow_html=True)
 with st.expander("📋 版本信息 & 更新日志", expanded=True):
-    st.markdown("**当前版本：V1.6 | 更新日期：2026.10.20**")
+    st.markdown("**当前版本：V1.7｜Apple简约UI｜更新日期：2026.10.20**")
     st.markdown("""
+    - [2026.10.20] V1.7：重构Apple官网简约风格；移除所有横杠与粗侧边色条；优化卡片悬浮交互
     - [2026.10.20] V1.6：修复团队成员弹窗，替换废弃st.modal为官方@st.dialog
     - [2026.10.20] V1.5：新增弹球打砖块休闲小游戏
-    - [2026.10.20] V1.4：新增项目团队成员弹窗模块，界面全面美化升级
-    - [2026.10.20] V1.3：页面顶部增加免责声明；侧边栏新增【查看说明】按钮，点击弹出参数解释气泡
+    - [2026.10.20] V1.4：新增项目团队成员弹窗模块
+    - [2026.10.20] V1.3：页面顶部增加免责声明；侧边栏新增【查看说明】按钮
     - [2026.10.20] V1.2：新增【休闲窗口】，内置2048小游戏
     - [2026.10.19] V1.0：完成基础三工况仿真、栅格图/LFP/时频图、CSV上传绘图功能
     """)
     st.info("💡 每次更新代码时，在这里直接修改版本号、日期、新增条目即可。")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ========== ✨【项目团队成员模块｜修复弹窗】 ==========
-st.markdown('<div class="custom-card card-team">', unsafe_allow_html=True)
-st.markdown("### 👥 项目团队成员（点击名字查看简介）")
+# ========== ✨【项目团队成员模块｜Apple质感按钮，@st.dialog弹窗】 ==========
+st.markdown('<div class="app-card">', unsafe_allow_html=True)
+st.markdown('<div class="app-section-title">👥 项目团队成员（点击名字查看简介）</div>', unsafe_allow_html=True)
 
-# 成员数据
 team_data = [
     {
         "name":"王一浩",
@@ -196,7 +191,6 @@ team_data = [
     }
 ]
 
-# 定义弹窗装饰器函数
 @st.dialog("成员简介")
 def show_member_dialog(member_name, member_intro):
     st.subheader(member_name)
@@ -207,7 +201,7 @@ cols = [col1, col2, col3, col4]
 
 for idx, member in enumerate(team_data):
     with cols[idx]:
-        st.markdown('<div class="team-btn">', unsafe_allow_html=True)
+        st.markdown('<div class="app-team-btn">', unsafe_allow_html=True)
         if st.button(member["name"], key=f"team_btn_{idx}"):
             show_member_dialog(member["name"], member["intro"])
         st.markdown('</div>', unsafe_allow_html=True)
@@ -887,12 +881,12 @@ loop();
 """
     html(game_html_breakout, height=420)
 
-# ---------------------- 底部卡片署名 ----------------------
-st.markdown('<div class="footer-card">',unsafe_allow_html=True)
+# ---------------------- 底部卡片署名｜Apple浅灰卡片 ----------------------
+st.markdown('<div class="app-footer">',unsafe_allow_html=True)
 st.markdown(
-    "<div style='color:#204b70; font-size: 15px; line-height:1.7;'>"
+    "<div style='color:#1d1d1f; font-size: 15px; line-height:1.7;'>"
     "🏫豫北医学院·王一浩 牛璐鸣 李雨轩<br>"
-    "指导教师👩‍🏫：丰依凡（超厉害的🤩）"
+    "指导教师👩‍🏫：丰依凡"
     "</div>",
     unsafe_allow_html=True,
 )
