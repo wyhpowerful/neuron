@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 from streamlit.components.v1 import html
 
-# ====================== 页面全局配置｜Apple极简风格 ======================
+# ====================== 页面全局配置【全新科技深色UI主题】 ======================
 st.set_page_config(
     page_title="帕金森DBS神经动力学仿真可视化平台",
     layout="wide",
@@ -14,134 +14,161 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Apple风格全局CSS：去掉粗分割线、去掉左侧彩色竖条，大留白，柔和阴影，圆角，hover悬浮
 global_css = """
 <style>
-/* 全局基础字体 Apple San‑Francisco 模拟 */
+/* 全局页面底色与字体 */
 html, body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color:#ffffff;
-    color:#1d1d1f;
+    font-family: "Microsoft YaHei", -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
+    background-color:#0f141c !important;
+    color:#e6edf7;
+}
+.stApp {
+    background-color:#0f141c;
 }
 
-/* 主卡片：Apple 悬浮卡片，无左侧色条，柔和浅阴影，大圆角 */
-div.app-card {
-    background-color:#ffffff;
-    border-radius:18px;
-    padding:1.8rem 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    margin-bottom:24px;
-    border:none;
-    transition: all 0.25s ease;
+/* 自定义卡片全新样式-科技磨砂风 */
+div.custom-card {
+    background-color: #18202c;
+    border-radius:16px;
+    padding:1.4rem 1.6rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+    margin-bottom:20px;
+    border: 1px solid #2a3749;
 }
-div.app-card:hover{
-    box-shadow: 0 6px 28px rgba(0,0,0,0.09);
+div.card-warning{
+    border-left:5px solid #ff6b6b;
+    background:#241b20;
+}
+div.card-info{
+    border-left:5px solid #4cc9f0;
+    background:#172230;
+}
+div.card-team{
+    border-left:5px solid #a855f7;
+    background:#1e1b2c;
 }
 
-/* 团队成员按钮 苹果质感渐变按钮 */
-.app-team-btn > button{
+/* 团队成员按钮 */
+.team-btn > button{
     width:100%;
     height:5.2rem;
-    border-radius:16px;
-    font-size:17px;
-    font-weight:500;
-    border: 1px solid rgba(0,0,0,0.08);
-    background: linear-gradient(135deg,#f5f5f7,#e8e8ed);
-    color:#1d1d1f;
-    box-shadow:0 2px 10px rgba(0,0,0,0.04);
-    transition: all 0.22s ease;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:600;
+    border:none;
+    background:linear-gradient(135deg,#7c3aed,#a855f7);
+    color:#ffffff;
+    box-shadow:0 4px 12px rgba(168,85,247,0.3);
 }
-.app-team-btn > button:hover{
-    transform: translateY(-3px);
-    box-shadow:0 8px 22px rgba(0,0,0,0.08);
-    background: linear-gradient(135deg,#ffffff,#f2f2f7);
+.team-btn > button:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 20px rgba(168,85,247,0.45);
 }
 
-/* 主运行仿真按钮 Apple蓝色风格 */
+/* 全局按钮主样式重写 */
 .stButton>button {
     width:100%;
-    border-radius:14px;
-    font-weight:500;
+    border-radius:12px;
+    font-weight:600;
     font-size:16px;
     height:3.4rem;
-    background:#007aff;
-    color:#ffffff !important;
+    background:linear-gradient(90deg,#2563eb,#4cc9f0);
+    color:white !important;
     border:none;
-    box-shadow:0 3px 12px rgba(0,122,255,0.18);
-    transition: all 0.22s ease;
+    box-shadow:0 4px 10px rgba(37,99,235,0.35);
 }
 .stButton>button:hover{
+    box-shadow:0 6px 18px rgba(37,99,235,0.45);
     transform: translateY(-2px);
-    box-shadow:0 6px 18px rgba(0,122,255,0.25);
-    background:#0084ff;
 }
 
-/* expander折叠面板美化 */
+/* 折叠面板expander */
 [data-testid="stExpander"] details summary{
-    border-radius:14px;
+    border-radius:12px;
     padding: 0.8rem 1rem !important;
-    background-color:#f5f5f7;
-    transition:0.2s;
+    background:#202b3b;
+    color:#e6edf7;
 }
 [data-testid="stExpander"] details:hover summary{
-    background-color:#e9e9ef;
+    background-color:#2a3a50;
 }
 
-/* 侧边栏美化 */
+/* 侧边栏样式 */
 [data-testid="stSidebar"]{
-    background-color:#fafafc;
+    background-color:#131a24;
 }
-[data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3{
-    color:#1d1d1f;
-    font-weight:500;
+[data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4{
+    color:#93c5fd;
+}
+[data-testid="stSidebar"] .stMarkdown{
+    color:#cbd5e1;
 }
 
-/* 彻底把原生hr分割线全部隐藏，不再显示横杠 */
+/* 分割线 */
 hr{
-    display:none !important;
+    border:none;
+    height:2px;
+    background:linear-gradient(90deg, #2563eb, #4cc9f0, transparent);
+    margin:28px 0;
 }
 
-/* 页脚卡片，苹果浅灰底色 */
-div.app-footer{
-    background-color:#f5f5f7;
-    border-radius:18px;
+/* 页脚卡片 */
+div.footer-card{
+    background: #18202c;
+    border:1px solid #2a3749;
+    border-radius:14px;
     padding:22px;
     text-align:center;
     margin-top:40px;
 }
 
-/* 标题层级样式 */
-.app-h1{
-    font-size:36px;
-    font-weight:600;
-    color:#1d1d1f;
-    text-align:center;
-    margin:12px 0 6px 0;
+/* 顶部图标跳动动画更新配色 */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-22px); }
 }
-.app-subtitle{
-    font-size:18px;
-    color:#6e6e73;
-    text-align:center;
-    margin-bottom:32px;
+.eye1 {
+  font-size:52px;
+  animation: bounce 0.6s ease-in-out infinite;
+  display:inline-block;
 }
-.app-section-title{
-    font-size:22px;
-    font-weight:500;
-    color:#1d1d1f;
-    margin-bottom:16px;
+.eye2 {
+  font-size:52px;
+  animation: bounce 0.6s ease-in-out 0.15s infinite;
+  display:inline-block;
 }
+.eye3 {
+  font-size:52px;
+  animation: bounce 0.6s ease-in-out 0.3s infinite;
+  display:inline-block;
+}
+
+/* 组件文字颜色覆盖 */
+.stAlert p {color:#e6edf7 !important;}
+div.stMarkdown {color:#e6edf7;}
 </style>
 """
 st.markdown(global_css, unsafe_allow_html=True)
 
-# ========== 页面大标题｜Apple极简，删除花哨弹跳动画 ==========
+# ---------------------- 顶部弹跳动画 ----------------------
+bounce_html = """
+<div style="text-align:center; margin-bottom:20px;">
+  <span class="eye1">🧠</span>&nbsp;&nbsp;
+  <span class="eye2">🔬</span>&nbsp;&nbsp;
+  <span class="eye3">📊</span>
+</div>
+"""
+st.markdown(bounce_html, unsafe_allow_html=True)
+
 st.markdown("""
-<div class="app-h1">帕金森DBS神经动力学仿真可视化平台</div>
-<div class="app-subtitle">基底节环路Izhikevich神经元网络 · DBS深部脑刺激数值仿真系统</div>
+<h1 style="text-align:center; color:#dbeafe; margin-bottom:6px;">帕金森DBS神经动力学仿真可视化平台</h1>
+<p style="text-align:center; font-size:18px; color:#94a3b8; margin-bottom:28px;">
+    基底节环路Izhikevich神经元网络 · DBS深部脑刺激数值仿真系统
+</p>
 """, unsafe_allow_html=True)
 
 # ==========【免责声明卡片】 ==========
-st.markdown('<div class="app-card">', unsafe_allow_html=True)
+st.markdown('<div class="custom-card card-warning">', unsafe_allow_html=True)
 with st.expander("⚠️ 免责声明", expanded=True):
     st.warning("""
 本平台仅为生物医学工程课程学习、科研教学仿真演示工具。
@@ -152,26 +179,25 @@ with st.expander("⚠️ 免责声明", expanded=True):
 """)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ========== 【版本+更新日志卡片】 ==========
-st.markdown('<div class="app-card">', unsafe_allow_html=True)
+# ========== 【版本+更新日志卡片】【已修正每条独立日期】 ==========
+st.markdown('<div class="custom-card card-info">', unsafe_allow_html=True)
 with st.expander("📋 版本信息 & 更新日志", expanded=True):
-    st.markdown("**当前版本：V1.7｜Apple简约UI｜更新日期：2026.10.20**")
+    st.markdown("**当前版本：V1.6 | 更新日期：2026.11.11**")
     st.markdown("""
-    - [2026.10.20] V1.7：重构Apple官网简约风格；移除所有横杠与粗侧边色条；优化卡片悬浮交互
-    - [2026.10.20] V1.6：修复团队成员弹窗，替换废弃st.modal为官方@st.dialog
-    - [2026.10.20] V1.5：新增弹球打砖块休闲小游戏
-    - [2026.10.20] V1.4：新增项目团队成员弹窗模块
-    - [2026.10.20] V1.3：页面顶部增加免责声明；侧边栏新增【查看说明】按钮
-    - [2026.10.20] V1.2：新增【休闲窗口】，内置2048小游戏
-    - [2026.10.19] V1.0：完成基础三工况仿真、栅格图/LFP/时频图、CSV上传绘图功能
+    - [2026.11.11] V1.6：全面重构整套UI界面为全新科技磨砂深色风格；新增黄金矿工休闲小游戏；修复团队名片弹窗乱码bug；更新日志每条记录配置独立实际日期
+    - [2026.10.22] V1.5：新增弹球打砖块休闲小游戏
+    - [2026.10.20] V1.4：新增项目团队成员模块，界面美化升级
+    - [2026.10.18] V1.3：页面顶部增加免责声明；侧边栏新增【查看说明】按钮，点击弹出参数解释气泡
+    - [2026.10.16] V1.2：新增【休闲窗口】，内置2048小游戏
+    - [2026.10.14] V1.1：新增参数详情折叠说明、参数原理解释模块
+    - [2026.10.10] V1.0：完成基础三工况仿真、栅格图/LFP/时频图、CSV上传绘图功能
     """)
     st.info("💡 每次更新代码时，在这里直接修改版本号、日期、新增条目即可。")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ========== ✨【项目团队成员模块｜Apple质感按钮，@st.dialog弹窗】 ==========
-st.markdown('<div class="app-card">', unsafe_allow_html=True)
-st.markdown('<div class="app-section-title">👥 项目团队成员（点击名字查看简介）</div>', unsafe_allow_html=True)
-
+# ========== ✨【项目团队成员模块｜修复弹窗，使用popover】 ==========
+st.markdown('<div class="custom-card card-team">', unsafe_allow_html=True)
+st.markdown("### 👥 项目团队成员（点击名字查看简介）")
 team_data = [
     {
         "name":"王一浩",
@@ -190,22 +216,14 @@ team_data = [
         "intro":"**项目带头人 | 硕士生导师**\n现工作于豫北医学院，项目奠基人。"
     }
 ]
-
-@st.dialog("成员简介")
-def show_member_dialog(member_name, member_intro):
-    st.subheader(member_name)
-    st.markdown(member_intro)
-
 col1, col2, col3, col4 = st.columns(4)
 cols = [col1, col2, col3, col4]
-
 for idx, member in enumerate(team_data):
     with cols[idx]:
-        st.markdown('<div class="app-team-btn">', unsafe_allow_html=True)
-        if st.button(member["name"], key=f"team_btn_{idx}"):
-            show_member_dialog(member["name"], member["intro"])
+        st.markdown('<div class="team-btn">', unsafe_allow_html=True)
+        with st.popover(member["name"]):
+            st.markdown(member["intro"])
         st.markdown('</div>', unsafe_allow_html=True)
-
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------- 默认配置 ----------------------
@@ -533,7 +551,6 @@ if mode == "基底节环路网络仿真":
             with st.popover("说明"):
                 st.markdown(f"**{param_info['dbs_start_ms']['brief']}**")
                 st.markdown(param_info["dbs_start_ms"]["detail"])
-
     run_btn = st.button("▶ 运行三工况仿真（正常 / PD / PD+DBS）")
     if run_btn:
         with st.spinner("正在仿真计算，请等待，神经元数量越大耗时越长……"):
@@ -780,17 +797,17 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let score = 0;
 let gameOver = false;
-
+//挡板
 const pad = {w:80, h:12, x:160, y:290, speed:12};
+//小球
 const ball = {r:8, x:200, y:260, dx:3, dy:-3};
-
+//砖块
 const brickRows = 4;
 const brickCols = 7;
 const brickW = 48;
 const brickH =18;
 const brickPad =4;
 let bricks = [];
-
 function initBricks(){
     bricks = [];
     for(let r=0;r<brickRows;r++){
@@ -805,7 +822,6 @@ function initBricks(){
         }
     }
 }
-
 function resetGame(){
     score=0;gameOver=false;
     pad.x=160;
@@ -813,49 +829,53 @@ function resetGame(){
     initBricks();
     updateInfo();
 }
-
 function movePad(delta){
     if(gameOver) return;
     pad.x += delta;
     if(pad.x<0) pad.x=0;
     if(pad.x+pad.w>canvas.width) pad.x = canvas.width - pad.w;
 }
-
 function updateInfo(){
     document.getElementById("infotext").innerText = gameOver?"游戏结束！点击重置":"分数："+score;
 }
-
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
+    //绘制挡板
     ctx.fillStyle="#72b8ff";
     ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
+    //绘制小球
     ctx.beginPath();
     ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
     ctx.fillStyle="#ffdd44";
     ctx.fill();
+    //绘制砖块
     for(let b of bricks){
         if(!b.alive) continue;
         ctx.fillStyle="#ff7766";
         ctx.fillRect(b.x,b.y,b.w,b.h);
     }
 }
-
 function update(){
     if(gameOver) return;
     ball.x += ball.dx;
     ball.y += ball.dy;
+    //左右边界反弹
     if(ball.x-ball.r <=0 || ball.x+ball.r >= canvas.width){
         ball.dx *= -1;
     }
+    //上边界反弹
     if(ball.y-ball.r <=0){
         ball.dy *= -1;
     }
+    //小球掉落底部
     if(ball.y+ball.r >= canvas.height){
         gameOver=true;updateInfo();return;
     }
+    //碰撞挡板
     if( ball.y+ball.r >= pad.y && ball.x>=pad.x && ball.x<=pad.x+pad.w ){
         ball.dy = -Math.abs(ball.dy);
     }
+    //碰撞砖块
     for(let b of bricks){
         if(!b.alive) continue;
         if( ball.x+ball.r> b.x && ball.x-ball.r < b.x+b.w &&
@@ -868,7 +888,6 @@ function update(){
         }
     }
 }
-
 function loop(){
     update();draw();
     requestAnimationFrame(loop);
@@ -881,13 +900,144 @@ loop();
 """
     html(game_html_breakout, height=420)
 
-# ---------------------- 底部卡片署名｜Apple浅灰卡片 ----------------------
-st.markdown('<div class="app-footer">',unsafe_allow_html=True)
+# ========== 🎮 休闲窗口3｜黄金矿工【本次新增】 ==========
+with st.expander("🎮 休闲窗口 | 黄金矿工小游戏", expanded=False):
+    st.markdown("💎空格释放钩子抓取矿石，抓到金矿加分！")
+    goldminer_html = """
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2c3e50;font-family:Arial;padding:10px}
+.wrap{width:460px;margin:0 auto}
+#can{background:#34495e;border-radius:8px;display:block;margin:0 auto}
+.ctrl{margin-top:12px;text-align:center}
+.ctrl button{padding:8px 16px;font-size:16px;border:none;border-radius:8px;background:#f39c12;color:white;margin:0 6px}
+.info{color:#ecf0f1;text-align:center;margin:8px;font-size:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<canvas id="can" width="440" height="340"></canvas>
+<div class="info" id="inf">分数：0</div>
+<div class="ctrl">
+<button onclick="fireHook()">🔔释放钩子(空格)</button>
+<button onclick="resetGame()">🔄重置</button>
+</div>
+</div>
+<script>
+const canvas=document.getElementById('can');
+const ctx=canvas.getContext('2d');
+const inf=document.getElementById('inf');
+let score=0;
+let angle=0;
+let swingSpeed=0.025;
+let hook={x:220,y:40,r:6,vx:0,vy:0,state:'swing',len:0,maxLen:260};
+let rocks=[];
+function initRocks(){
+    rocks=[];
+    const items=[
+        {x:80,y:120,w:22,h:22,val:50,color:'#ffd700'},
+        {x:320,y:140,w:26,h:26,val:60,color:'#ffd700'},
+        {x:140,y:210,w:32,h:32,val:100,color:'#ffd700'},
+        {x:360,y:230,w:18,h:18,val:30,color:'#c0c0c0'},
+        {x:220,y:260,w:36,h:36,val:150,color:'#ffb800'},
+    ];
+    items.forEach(it=>{rocks.push({...it,grabbed:false})})
+}
+function resetGame(){
+    score=0;
+    angle=0;
+    hook={x:220,y:40,r:6,vx:0,vy:0,state:'swing',len:0,maxLen:260};
+    initRocks();
+    updateUi();
+}
+function updateUi(){inf.innerText="分数："+score;}
+function fireHook(){
+    if(hook.state!=='swing') return;
+    hook.state='go';
+    hook.vx= Math.sin(angle)*7;
+    hook.vy= 7;
+}
+document.onkeydown=(e)=>{if(e.code==='Space'){e.preventDefault();fireHook();}};
+
+function loop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    //矿工原点
+    ctx.fillStyle='#f1c40f';
+    ctx.beginPath();ctx.arc(220,40,12,0,Math.PI*2);ctx.fill();
+
+    if(hook.state==='swing'){
+        angle += swingSpeed;
+        hook.x = 220 + Math.sin(angle)*130;
+        hook.y = 40;
+    }else if(hook.state==='go'){
+        hook.x += hook.vx;
+        hook.y += hook.vy;
+        let dist=Math.hypot(hook.x-220,hook.y-40);
+        if(dist>hook.maxLen || hook.y>canvas.height){
+            hook.state='back';
+        }
+        //碰撞矿石
+        for(let r of rocks){
+            if(r.grabbed) continue;
+            if(hook.x>r.x&&hook.x<r.x+r.w&&hook.y>r.y&&hook.y<r.y+r.h){
+                r.grabbed=true;
+                hook.carry=r;
+                hook.state='back';
+                break;
+            }
+        }
+    }else if(hook.state==='back'){
+        let dx=220-hook.x;
+        let dy=40-hook.y;
+        hook.x+=dx*0.07;
+        hook.y+=dy*0.07;
+        if(Math.abs(dx)<4&&Math.abs(dy)<4){
+            if(hook.carry){
+                score += hook.carry.val;
+                hook.carry=null;
+                updateUi();
+            }
+            hook.state='swing';
+        }
+    }
+    //绘制绳索
+    ctx.strokeStyle="#ddd";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(220,40);ctx.lineTo(hook.x,hook.y);ctx.stroke();
+    //钩子
+    ctx.fillStyle="#ecf0f1";
+    ctx.beginPath();ctx.arc(hook.x,hook.y,hook.r,0,Math.PI*2);ctx.fill();
+
+    //绘制矿石
+    for(let r of rocks){
+        if(r.grabbed&&hook.carry===r){
+            r.x=hook.x - r.w/2;
+            r.y=hook.y;
+        }
+        ctx.fillStyle=r.color;
+        ctx.fillRect(r.x,r.y,r.w,r.h);
+    }
+    requestAnimationFrame(loop);
+}
+resetGame();
+loop();
+</script>
+</body>
+</html>
+"""
+    html(goldminer_html, height=400)
+
+# ---------------------- 底部卡片署名 ----------------------
+st.markdown('<div class="footer-card">',unsafe_allow_html=True)
 st.markdown(
-    "<div style='color:#1d1d1f; font-size: 15px; line-height:1.7;'>"
+    "<div style='color:#94a3b8; font-size: 15px; line-height:1.7;'>"
     "🏫豫北医学院·王一浩 牛璐鸣 李雨轩<br>"
-    "指导教师👩‍🏫：丰依凡"
+    "指导教师👩‍🏫：丰依凡（超厉害的🤩）"
     "</div>",
     unsafe_allow_html=True,
 )
-st.markdown('</div>',unsafe_allow_html=True)
+st.markdown("</div>",unsafe_allow_html=True)
